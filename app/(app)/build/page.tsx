@@ -18,6 +18,13 @@ type FieldConfig = {
   multiline?: boolean;
 };
 
+type PanelMeta = {
+  leftTitle: string;
+  leftDescription: string;
+  rightTitle: string;
+  rightDescription: string;
+};
+
 const tabs: ReadonlyArray<{ key: BuildTab; label: string; subtitle: string }> = [
   {
     key: "screen",
@@ -136,6 +143,42 @@ const modeByTab: Record<BuildTab, BuildMode> = {
   formula: "formula_builder"
 };
 
+const panelMetaByTab: Record<BuildTab, PanelMeta> = {
+  screen: {
+    leftTitle: "Screen Definition Inputs",
+    leftDescription: "Provide screen context for blueprint generation.",
+    rightTitle: "Screen Output",
+    rightDescription: "Generated build output from /api/generate."
+  },
+  component: {
+    leftTitle: "Component Definition Inputs",
+    leftDescription: "Capture component intent and interaction contract.",
+    rightTitle: "Component Output",
+    rightDescription: "Generated build output from /api/generate."
+  },
+  formula: {
+    leftTitle: "Formula Context Inputs",
+    leftDescription: "Define formula context and optimization priorities.",
+    rightTitle: "Formula Output",
+    rightDescription: "Generated build output from /api/generate."
+  }
+};
+
+function createBuildRequest(activeTab: BuildTab, inputsByTab: Record<BuildTab, Record<string, string>>): BuildRequest {
+  const activeTabLabel = tabs.find((tab) => tab.key === activeTab)?.label ?? "Build";
+
+  return {
+    mode: modeByTab[activeTab],
+    promptTitle: `${activeTabLabel} Request`,
+    contextSummary: `Build Studio submission for ${activeTab} mode`,
+    inputPayload: inputsByTab[activeTab],
+    context: {
+      workspaceId: "workspace-demo",
+      correlationId: crypto.randomUUID()
+    }
+  };
+}
+
 export default function BuildPage() {
   const [activeTab, setActiveTab] = useState<BuildTab>("screen");
   const [inputsByTab, setInputsByTab] = useState<Record<BuildTab, Record<string, string>>>(initialValues);
@@ -144,33 +187,7 @@ export default function BuildPage() {
   const [error, setError] = useState<string | null>(null);
 
   const activeFields = fieldConfigByTab[activeTab];
-
-  const panelMeta = useMemo(() => {
-    if (activeTab === "component") {
-      return {
-        leftTitle: "Component Definition Inputs",
-        leftDescription: "Capture component intent and interaction contract.",
-        rightTitle: "Component Output",
-        rightDescription: "Generated build output from /api/generate."
-      };
-    }
-
-    if (activeTab === "formula") {
-      return {
-        leftTitle: "Formula Context Inputs",
-        leftDescription: "Define formula context and optimization priorities.",
-        rightTitle: "Formula Output",
-        rightDescription: "Generated build output from /api/generate."
-      };
-    }
-
-    return {
-      leftTitle: "Screen Definition Inputs",
-      leftDescription: "Provide screen context for blueprint generation.",
-      rightTitle: "Screen Output",
-      rightDescription: "Generated build output from /api/generate."
-    };
-  }, [activeTab]);
+  const panelMeta = useMemo(() => panelMetaByTab[activeTab], [activeTab]);
 
   const handleInputChange = (fieldKey: string, value: string) => {
     setInputsByTab((prev) => ({
@@ -186,16 +203,7 @@ export default function BuildPage() {
     setIsLoading(true);
     setError(null);
 
-    const payload: BuildRequest = {
-      mode: modeByTab[activeTab],
-      promptTitle: `${tabs.find((tab) => tab.key === activeTab)?.label ?? "Build"} Request`,
-      contextSummary: `Build Studio submission for ${activeTab} mode`,
-      inputPayload: inputsByTab[activeTab],
-      context: {
-        workspaceId: "workspace-demo",
-        correlationId: crypto.randomUUID()
-      }
-    };
+    const payload = createBuildRequest(activeTab, inputsByTab);
 
     try {
       const result = await fetch("/api/generate", {
@@ -279,7 +287,9 @@ export default function BuildPage() {
           ) : null}
 
           {!response && !error ? (
-            <p className="text-sm text-muted-foreground">Generate build output to see screen, component, and formula recommendations.</p>
+            <p className="text-sm text-muted-foreground">
+              Generate build output to see screen, component, and formula recommendations.
+            </p>
           ) : null}
 
           {response ? (
