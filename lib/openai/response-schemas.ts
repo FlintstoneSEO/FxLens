@@ -65,16 +65,6 @@ const recommendationItemSchema = z.object({
   nextSteps: z.array(z.string().min(1))
 });
 
-const performanceRecommendationSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  severity: severitySchema,
-  priority: z.number().int(),
-  rationale: z.string().min(1),
-  expectedImpact: z.string().min(1),
-  implementationNotes: z.array(z.string().min(1))
-});
-
 export const scopeResponseSchema = z.object({
   area: z.literal("scope_studio"),
   generatedAt: z.string().min(1),
@@ -115,15 +105,4 @@ export const analyzeResponseSchema = z.object({
   performanceNotes: z.array(z.string().min(1)),
   maintainabilityNotes: z.array(z.string().min(1)),
   recommendations: z.array(recommendationItemSchema)
-});
-
-export const recommendationResponseSchema = z.object({
-  area: z.literal("recommendation_engine"),
-  generatedAt: z.string().min(1),
-  recommendations: z.array(recommendationItemSchema),
-  performanceRecommendations: z.array(performanceRecommendationSchema),
-  backendRecommendations: z.array(backendRecommendationSchema),
-  sqlArtifacts: z.array(sqlArtifactSchema),
-  suggestedComponents: z.array(suggestedComponentSchema),
-  suggestedFormulas: z.array(suggestedFormulaSchema)
 });
