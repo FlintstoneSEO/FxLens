@@ -29,7 +29,7 @@ const navItems: readonly NavItem[] = [
   { href: "/analyze", label: "Analyze Studio", icon: Search },
   { href: "/solution-review", label: "Solution Review", icon: ClipboardCheck },
   { href: "/history", label: "History", icon: FileClock },
-  { href: "/prompts", label: "Recommendations", icon: BarChart3 },
+  { href: "/prompts", label: "Prompts", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 

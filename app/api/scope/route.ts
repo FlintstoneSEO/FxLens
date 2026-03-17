@@ -14,11 +14,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const response = await generateScopeWithOpenAI(parsed.data);
     return NextResponse.json(response);
-  } catch (error) {
-    console.error("Scope OpenAI generation failed. Falling back to mock response.", {
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-
+  } catch {
     const fallback = createScopeMockResponse(parsed.data);
     return NextResponse.json(fallback);
   }

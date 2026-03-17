@@ -185,26 +185,6 @@ export interface SolutionArtifact {
   name: string;
   summary: string;
   sourcePath?: string;
-  content?: string;
-}
-
-export interface ParsedSolutionArtifact {
-  artifactId: string;
-  name: string;
-  artifactType: SolutionArtifact["artifactType"];
-  fileFormat?: UploadFileFormat;
-  parseStatus: "parsed" | "metadata_only" | "failed";
-  normalizedContent?: {
-    contentType: "json" | "yaml" | "text" | "binary";
-    preview: string;
-    parsedObject?: Record<string, unknown>;
-  };
-  parseError?: string;
-}
-
-export interface SolutionArtifactParseResult {
-  parsedArtifacts: ParsedSolutionArtifact[];
-  warnings: string[];
 }
 
 export interface SolutionReviewRequest {
