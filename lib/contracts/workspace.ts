@@ -25,6 +25,8 @@ export type AnalyzeMode = "formula_analyzer" | "screen_analyzer" | "component_an
 
 export type SqlArtifactKind = "view" | "stored_procedure";
 
+export type UploadFileFormat = "zip" | "yaml" | "txt" | "json";
+
 export interface RequestContext {
   correlationId?: string;
   workspaceId?: string;
@@ -179,6 +181,7 @@ export interface SolutionUploadMetadata {
 export interface SolutionArtifact {
   id: string;
   artifactType: "screen" | "component" | "formula" | "flow" | "table" | "other";
+  fileFormat?: UploadFileFormat;
   name: string;
   summary: string;
   sourcePath?: string;

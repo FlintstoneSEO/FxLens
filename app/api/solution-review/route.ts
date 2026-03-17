@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 
-import type { SolutionReviewRequest } from "@/lib/contracts/workspace";
 import { createSolutionReviewMockResponse } from "@/lib/mocks/api";
+import { parseAndValidateRequest, solutionReviewRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
-  const body = (await request.json()) as SolutionReviewRequest;
-  const response = createSolutionReviewMockResponse(body);
+  const parsed = await parseAndValidateRequest(request, solutionReviewRequestSchema);
+
+  if (!parsed.success) {
+    return NextResponse.json(parsed.error, { status: 400 });
+  }
+
+  const response = createSolutionReviewMockResponse(parsed.data);
 
   return NextResponse.json(response);
 }
