@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createBuildMockResponse } from "@/lib/mocks/api";
+import { generateBuildWithOpenAI } from "@/lib/openai/workspace";
 import { buildRequestSchema, parseAndValidateRequest } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -10,7 +11,11 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json(parsed.error, { status: 400 });
   }
 
-  const response = createBuildMockResponse(parsed.data);
-
-  return NextResponse.json(response);
+  try {
+    const response = await generateBuildWithOpenAI(parsed.data);
+    return NextResponse.json(response);
+  } catch {
+    const fallback = createBuildMockResponse(parsed.data);
+    return NextResponse.json(fallback);
+  }
 }

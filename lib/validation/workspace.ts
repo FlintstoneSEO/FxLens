@@ -33,7 +33,7 @@ const solutionArtifactSchema = z
   })
   .strict();
 
-export const scopeRequestSchema: z.ZodType<ScopeRequest> = z
+export const scopeRequestSchema = z
   .object({
     projectName: z.string().min(1),
     businessObjective: z.string().min(1),
@@ -47,7 +47,7 @@ export const scopeRequestSchema: z.ZodType<ScopeRequest> = z
   })
   .strict();
 
-export const buildRequestSchema: z.ZodType<BuildRequest> = z
+export const buildRequestSchema = z
   .object({
     mode: buildModeSchema,
     promptTitle: z.string().min(1),
@@ -57,7 +57,7 @@ export const buildRequestSchema: z.ZodType<BuildRequest> = z
   })
   .strict();
 
-export const analyzeRequestSchema: z.ZodType<AnalyzeRequest> = z
+export const analyzeRequestSchema = z
   .object({
     mode: analyzeModeSchema,
     artifactName: z.string().min(1),
@@ -70,7 +70,7 @@ export const analyzeRequestSchema: z.ZodType<AnalyzeRequest> = z
   })
   .strict();
 
-export const recommendationRequestSchema: z.ZodType<RecommendationRequest> = z
+export const recommendationRequestSchema = z
   .object({
     scenario: z.string().min(1),
     dataSourceMix: dataSourceTypeSchema,
@@ -81,7 +81,7 @@ export const recommendationRequestSchema: z.ZodType<RecommendationRequest> = z
   })
   .strict();
 
-export const solutionReviewRequestSchema: z.ZodType<SolutionReviewRequest> = z
+export const solutionReviewRequestSchema = z
   .object({
     metadata: z
       .object({
@@ -96,6 +96,19 @@ export const solutionReviewRequestSchema: z.ZodType<SolutionReviewRequest> = z
     context: requestContextSchema.optional()
   })
   .strict();
+
+type _ScopeSchemaMatchesContract = z.infer<typeof scopeRequestSchema> extends ScopeRequest ? true : never;
+type _ScopeContractMatchesSchema = ScopeRequest extends z.infer<typeof scopeRequestSchema> ? true : never;
+type _BuildSchemaMatchesContract = z.infer<typeof buildRequestSchema> extends BuildRequest ? true : never;
+type _BuildContractMatchesSchema = BuildRequest extends z.infer<typeof buildRequestSchema> ? true : never;
+type _AnalyzeSchemaMatchesContract = z.infer<typeof analyzeRequestSchema> extends AnalyzeRequest ? true : never;
+type _AnalyzeContractMatchesSchema = AnalyzeRequest extends z.infer<typeof analyzeRequestSchema> ? true : never;
+type _RecommendSchemaMatchesContract = z.infer<typeof recommendationRequestSchema> extends RecommendationRequest ? true : never;
+type _RecommendContractMatchesSchema = RecommendationRequest extends z.infer<typeof recommendationRequestSchema> ? true : never;
+type _SolutionReviewSchemaMatchesContract = z.infer<typeof solutionReviewRequestSchema> extends SolutionReviewRequest ? true : never;
+type _SolutionReviewContractMatchesSchema = SolutionReviewRequest extends z.infer<typeof solutionReviewRequestSchema>
+  ? true
+  : never;
 
 export type ValidationIssue = {
   path: string;
@@ -120,10 +133,10 @@ type ParseValidationFailure = {
   error: ValidationErrorPayload;
 };
 
-export async function parseAndValidateRequest<T>(
+export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
   request: Request,
-  schema: z.ZodType<T>
-): Promise<ParseValidationSuccess<T> | ParseValidationFailure> {
+  schema: TSchema
+): Promise<ParseValidationSuccess<z.infer<TSchema>> | ParseValidationFailure> {
   let payload: unknown;
 
   try {
@@ -150,7 +163,7 @@ export async function parseAndValidateRequest<T>(
         error: {
           code: "INVALID_REQUEST_BODY",
           message: "Request body validation failed.",
-          issues: parsed.error.issues.map((issue) => ({
+          issues: parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
             path: issue.path.length > 0 ? issue.path.join(".") : "$",
             message: issue.message
           }))

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createScopeMockResponse } from "@/lib/mocks/api";
+import { generateScopeWithOpenAI } from "@/lib/openai/workspace";
 import { parseAndValidateRequest, scopeRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -10,7 +11,11 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json(parsed.error, { status: 400 });
   }
 
-  const response = createScopeMockResponse(parsed.data);
-
-  return NextResponse.json(response);
+  try {
+    const response = await generateScopeWithOpenAI(parsed.data);
+    return NextResponse.json(response);
+  } catch {
+    const fallback = createScopeMockResponse(parsed.data);
+    return NextResponse.json(fallback);
+  }
 }
