@@ -14,11 +14,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const response = await generateBuildWithOpenAI(parsed.data);
     return NextResponse.json(response);
-  } catch (error) {
-    console.error("Build OpenAI generation failed. Falling back to mock response.", {
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
-
+  } catch {
     const fallback = createBuildMockResponse(parsed.data);
     return NextResponse.json(fallback);
   }

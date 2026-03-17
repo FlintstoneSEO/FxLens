@@ -1,19 +1,15 @@
-import Link from "next/link";
-
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
 type StudioCardProps = {
   title: string;
-  href: string;
   description: string;
   capabilities: readonly string[];
 };
 
 export function StudioCard({
   title,
-  href,
   description,
   capabilities
 }: StudioCardProps) {
@@ -30,12 +26,10 @@ export function StudioCard({
           </li>
         ))}
       </ul>
-      <Link href={href}>
-        <Button variant="secondary" className="w-full justify-between">
-          Explore
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </Link>
+      <Button variant="secondary" className="w-full justify-between">
+        Explore
+        <ArrowRight className="h-4 w-4" aria-hidden="true" />
+      </Button>
     </article>
   );
 }

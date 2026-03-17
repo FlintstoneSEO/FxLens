@@ -1,12 +1,9 @@
-import Link from "next/link";
-
 import { StudioCard } from "@/components/studio-card";
 import { Button } from "@/components/ui/button";
 
 const studios = [
   {
     title: "Scope Studio",
-    href: "/scope",
     description:
       "Turn discovery notes into a practical Power Apps architecture with clear data and automation boundaries.",
     capabilities: [
@@ -17,7 +14,6 @@ const studios = [
   },
   {
     title: "Build Studio",
-    href: "/build",
     description:
       "Generate reusable app building blocks so teams can move from architecture to implementation quickly.",
     capabilities: [
@@ -28,7 +24,6 @@ const studios = [
   },
   {
     title: "Analyze Studio",
-    href: "/analyze",
     description:
       "Review formulas and screen logic to detect delegation risks and performance bottlenecks before release.",
     capabilities: [
@@ -54,12 +49,8 @@ export default function HomePage() {
           implement data models, authentication, and generation workflows.
         </p>
         <div className="flex gap-3">
-          <Link href="/scope">
-            <Button>Start with Scope Studio</Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button variant="ghost">View product roadmap</Button>
-          </Link>
+          <Button>Start with Scope Studio</Button>
+          <Button variant="ghost">View product roadmap</Button>
         </div>
       </header>
 
@@ -68,7 +59,6 @@ export default function HomePage() {
           <StudioCard
             key={studio.title}
             title={studio.title}
-            href={studio.href}
             description={studio.description}
             capabilities={studio.capabilities}
           />
