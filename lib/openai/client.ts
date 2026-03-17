@@ -1,60 +1,34 @@
 import { z } from "zod";
 
-import { getOpenAIConfig } from "@/lib/openai/config";
-
 type ChatCompletionResponse = {
   choices?: Array<{
     message?: {
-      content?: string | Array<{ type?: string; text?: string }> | null;
+      content?: string | null;
     };
   }>;
 };
 
-type OpenAIMessageContent = string | Array<{ type?: string; text?: string }> | null | undefined;
+const OPENAI_API_URL = process.env.OPENAI_API_URL ?? "https://api.openai.com/v1/chat/completions";
+const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
 
-function extractStringContent(content: OpenAIMessageContent): string {
-  if (typeof content === "string") {
-    return content;
+function getApiKey(): string {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured.");
   }
 
-  if (Array.isArray(content)) {
-    return content
-      .filter((part) => part?.type === "text" && typeof part.text === "string")
-      .map((part) => part.text)
-      .join("\n")
-      .trim();
-  }
-
-  return "";
-}
-
-function extractJsonCandidate(rawContent: string): string {
-  const trimmed = rawContent.trim();
-
-  if (!trimmed) {
-    throw new Error("OpenAI response did not include JSON content.");
-  }
-
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fencedMatch?.[1]) {
-    return fencedMatch[1].trim();
-  }
-
-  const firstBrace = trimmed.indexOf("{");
-  const lastBrace = trimmed.lastIndexOf("}");
-
-  if (firstBrace >= 0 && lastBrace > firstBrace) {
-    return trimmed.slice(firstBrace, lastBrace + 1);
-  }
-
-  return trimmed;
+  return apiKey;
 }
 
 function extractJsonContent(payload: ChatCompletionResponse): string {
   const content = payload.choices?.[0]?.message?.content;
-  const rawContent = extractStringContent(content);
 
-  return extractJsonCandidate(rawContent);
+  if (!content) {
+    throw new Error("OpenAI response did not include JSON content.");
+  }
+
+  return content;
 }
 
 export async function requestStructuredJson<T>(
@@ -62,16 +36,16 @@ export async function requestStructuredJson<T>(
   userPrompt: string,
   responseSchema: z.ZodType<T>
 ): Promise<T> {
-  const config = getOpenAIConfig();
+  const apiKey = getApiKey();
 
-  const response = await fetch(config.apiUrl, {
+  const response = await fetch(OPENAI_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`
+      Authorization: `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: config.model,
+      model: OPENAI_MODEL,
       temperature: 0.2,
       response_format: { type: "json_object" },
       messages: [
@@ -100,12 +74,6 @@ export async function requestStructuredJson<T>(
   const parsed = responseSchema.safeParse(parsedJson);
 
   if (!parsed.success) {
-    console.error("OpenAI schema validation failed.", {
-      issues: parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
-        path: issue.path.join("."),
-        message: issue.message
-      }))
-    });
     throw new Error("OpenAI returned JSON that does not match the expected response contract.");
   }
 
