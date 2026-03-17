@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 
-import type { ScopeRequest } from "@/lib/contracts/workspace";
 import { createScopeMockResponse } from "@/lib/mocks/api";
+import { generateScopeWithOpenAI } from "@/lib/openai/workspace";
+import { parseAndValidateRequest, scopeRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
-  const body = (await request.json()) as ScopeRequest;
-  const response = createScopeMockResponse(body);
+  const parsed = await parseAndValidateRequest(request, scopeRequestSchema);
 
-  return NextResponse.json(response);
+  if (!parsed.success) {
+    return NextResponse.json(parsed.error, { status: 400 });
+  }
+
+  try {
+    const response = await generateScopeWithOpenAI(parsed.data);
+    return NextResponse.json(response);
+  } catch {
+    const fallback = createScopeMockResponse(parsed.data);
+    return NextResponse.json(fallback);
+  }
 }
