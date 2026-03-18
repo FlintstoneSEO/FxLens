@@ -35,7 +35,85 @@ const promptStarters = [
   "Call out follow-up questions that would improve implementation confidence."
 ] as const;
 
+const initialFormState = {
+  mode: "formula_analyzer" as AnalyzeMode,
+  artifactName: "Order review formula",
+  artifactPurpose: "Validate manager-only order review access.",
+  dataSource: "dataverse" as DataSourceType,
+  symptoms: "Repeated lookups and potential delegation warnings when the dataset grows.",
+  inputPayload: sampleFormula,
+  relatedFormulas: "Set(varIsManager, LookUp(Users, Id = User().Email, Role = \"Manager\"))"
+};
+
+function DetailList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <ul className="space-y-1 text-sm text-muted-foreground">
+        {items.map((item) => (
+          <li key={item} className="list-inside list-disc">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function AnalyzePage() {
+  const [formState, setFormState] = useState(initialFormState);
+  const [response, setResponse] = useState<AnalyzeResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isSubmitDisabled = useMemo(() => {
+    return (
+      isSubmitting ||
+      formState.artifactName.trim().length === 0 ||
+      formState.artifactPurpose.trim().length === 0 ||
+      formState.symptoms.trim().length === 0
+    );
+  }, [formState.artifactName, formState.artifactPurpose, formState.symptoms, isSubmitting]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const apiResponse = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...formState,
+          relatedFormulas: formState.relatedFormulas.trim() || undefined
+        })
+      });
+
+      const payload = (await apiResponse.json()) as AnalyzeResponse | { error?: { message?: string } };
+
+      if (!apiResponse.ok) {
+        const message = "error" in payload ? payload.error?.message : undefined;
+        setResponse(null);
+        setErrorMessage(message ?? "Analyze request failed.");
+        return;
+      }
+
+      setResponse(payload as AnalyzeResponse);
+    } catch {
+      setResponse(null);
+      setErrorMessage("Unable to submit analyze request right now.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
