@@ -1,15 +1,13 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { ClipboardList, Flag, ShieldAlert, Users } from "lucide-react";
+import { ClipboardList, Flag, Loader2, ShieldAlert, Sparkles, Users } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
-import { FormInputField } from "@/components/workspace/form-input-field";
-import { FormTextareaField } from "@/components/workspace/form-textarea-field";
-import { OutputBlock } from "@/components/workspace/output-block";
+import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
 import { StatusMessage } from "@/components/workspace/status-message";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
@@ -70,6 +68,10 @@ export default function ScopePage() {
       ...current,
       [field]: value
     }));
+
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -95,6 +97,7 @@ export default function ScopePage() {
       setScopeResponse(data as ScopeResponse);
     } catch (error) {
       setSubmitError(getValidationMessage(error));
+      setScopeResponse(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -112,7 +115,7 @@ export default function ScopePage() {
           title="Scoping Workspace"
           description="Capture the core product context, operational requirements, and delivery constraints before architecture generation."
         >
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <section className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
               <div className="space-y-1">
                 <p className={sectionHintClassName}>Project foundation</p>
@@ -121,26 +124,45 @@ export default function ScopePage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1.5 text-sm">
                   <span className="font-medium">Project / app name</span>
-                  <input className={fieldClassName} placeholder="e.g. Vendor onboarding portal" />
+                  <input
+                    className={fieldClassName}
+                    placeholder="e.g. Vendor onboarding portal"
+                    value={formState.projectName}
+                    onChange={(event) => updateField("projectName", event.target.value)}
+                  />
                 </label>
                 <label className="space-y-1.5 text-sm">
-                  <span className="font-medium">Primary business domain</span>
-                  <input className={fieldClassName} placeholder="e.g. Procurement, HR, Finance" />
+                  <span className="font-medium">Preferred data source</span>
+                  <select
+                    className={fieldClassName}
+                    value={formState.preferredDataSource}
+                    onChange={(event) => updateField("preferredDataSource", event.target.value as DataSourceType)}
+                  >
+                    {dataSourceOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </label>
               </div>
               <label className="block space-y-1.5 text-sm">
-                <span className="font-medium">Project context</span>
+                <span className="font-medium">Business objective</span>
                 <textarea
                   className={fieldClassName}
                   rows={4}
+                  value={formState.businessObjective}
+                  onChange={(event) => updateField("businessObjective", event.target.value)}
                   placeholder="Summarize the business problem, current workflow, and why this app is being proposed."
                 />
               </label>
               <label className="block space-y-1.5 text-sm">
-                <span className="font-medium">Success goals</span>
+                <span className="font-medium">Desired outputs</span>
                 <textarea
                   className={fieldClassName}
                   rows={4}
+                  value={formState.desiredOutputs}
+                  onChange={(event) => updateField("desiredOutputs", event.target.value)}
                   placeholder="List measurable outcomes, must-have capabilities, and what a successful launch should achieve."
                 />
               </label>
@@ -156,14 +178,18 @@ export default function ScopePage() {
                 <textarea
                   className={fieldClassName}
                   rows={4}
+                  value={formState.targetUsersRoles}
+                  onChange={(event) => updateField("targetUsersRoles", event.target.value)}
                   placeholder="Describe each user type, their responsibilities, and any permission differences."
                 />
               </label>
               <label className="block space-y-1.5 text-sm">
-                <span className="font-medium">Entities and data</span>
+                <span className="font-medium">Requirements and data</span>
                 <textarea
                   className={fieldClassName}
                   rows={5}
+                  value={formState.requirementsText}
+                  onChange={(event) => updateField("requirementsText", event.target.value)}
                   placeholder="Outline the main records, relationships, documents, statuses, and important fields to track."
                 />
               </label>
@@ -175,10 +201,12 @@ export default function ScopePage() {
                 <h4 className="text-sm font-semibold">Processes and constraints</h4>
               </div>
               <label className="block space-y-1.5 text-sm">
-                <span className="font-medium">Processes / flows</span>
+                <span className="font-medium">Meeting notes</span>
                 <textarea
                   className={fieldClassName}
                   rows={5}
+                  value={formState.meetingNotes}
+                  onChange={(event) => updateField("meetingNotes", event.target.value)}
                   placeholder="Map the major journeys, approvals, automations, notifications, and exceptions the app should support."
                 />
               </label>
@@ -188,38 +216,38 @@ export default function ScopePage() {
                   <textarea
                     className={fieldClassName}
                     rows={4}
+                    value={formState.integrationNeeds}
+                    onChange={(event) => updateField("integrationNeeds", event.target.value)}
                     placeholder="ERP, CRM, identity providers, spreadsheets, APIs, or manual handoffs."
                   />
                 </label>
-                <label className="space-y-1.5 text-sm">
-                  <span className="font-medium">Constraints and risks</span>
-                  <textarea
-                    className={fieldClassName}
-                    rows={4}
-                    placeholder="Compliance, timeline, staffing, data quality, security, or platform limitations."
-                  />
-                </label>
+                <div className="space-y-1.5 text-sm">
+                  <span className="font-medium">Submission status</span>
+                  {submitError ? (
+                    <StatusMessage message={submitError} tone="error" />
+                  ) : (
+                    <StatusMessage message="Submit to generate structured screens, entities, roles, flows, and rollout recommendations." />
+                  )}
+                </div>
               </div>
-              <label className="block space-y-1.5 text-sm">
-                <span className="font-medium">Additional notes</span>
-                <textarea
-                  className={fieldClassName}
-                  rows={4}
-                  placeholder="Capture open questions, assumptions, references, or anything the solution team should keep in mind."
-                />
-              </label>
             </section>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border/80 bg-background/30 px-4 py-3">
-              <p className="text-sm text-muted-foreground">
-                Inputs are captured locally for now. Submission and AI generation will be wired in a later phase.
-              </p>
-              <div className="flex gap-2">
-                <Button type="button" variant="secondary">
-                  Save draft
-                </Button>
-                <Button type="button">Prepare for generation</Button>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-background/30 px-4 py-3">
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                {isSubmitting ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+                ) : (
+                  <Sparkles className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+                )}
+                <p>
+                  {isSubmitting
+                    ? "Generating your scope draft from the current inputs."
+                    : "Scope Studio submits directly to the existing API route and renders the latest response below."}
+                </p>
               </div>
+              <Button type="submit" disabled={isSubmitting || isSubmitDisabled}>
+                {isSubmitting ? "Generating..." : "Generate Scope"}
+              </Button>
             </div>
           </form>
         </SectionCard>
@@ -272,6 +300,15 @@ export default function ScopePage() {
             </ul>
           </SectionCard>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          title="Scope results"
+          description="Structured recommendations returned by the Scope API for the latest successful submission."
+        >
+          <ScopeResultsPanel result={scopeResponse} />
+        </SectionCard>
       </div>
     </PageContainer>
   );
