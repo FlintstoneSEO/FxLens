@@ -4,6 +4,11 @@ import { FileText, LayoutPanelTop } from "lucide-react";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusMessage } from "@/components/workspace/status-message";
 
+export const STUDIO_RUN_LABEL = "Run";
+export const STUDIO_RUNNING_LABEL = "Running...";
+export const STUDIO_LOADING_MESSAGE = "Running the latest request. Results will appear here when processing finishes.";
+export const STUDIO_ERROR_LABEL = "Run failed";
+
 export function StudioInputCard({
   title = "Input",
   description,
@@ -26,7 +31,7 @@ export function StudioInputCard({
         accent === "input" ? (
           <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
             <FileText className="h-3.5 w-3.5" aria-hidden="true" />
-            Form
+            Input
           </span>
         ) : undefined
       }
@@ -45,7 +50,9 @@ export function StudioOutputCard({
   className,
   accent = "output",
   generatedAtLabel,
-  isLoading = false
+  isLoading = false,
+  loadingMessage = STUDIO_LOADING_MESSAGE,
+  errorLabel = STUDIO_ERROR_LABEL
 }: {
   title?: string;
   description: string;
@@ -56,6 +63,8 @@ export function StudioOutputCard({
   accent?: "input" | "output";
   generatedAtLabel?: string | null;
   isLoading?: boolean;
+  loadingMessage?: string;
+  errorLabel?: string;
 }) {
   return (
     <SectionCard
@@ -66,7 +75,7 @@ export function StudioOutputCard({
         accent === "output" ? (
           <span className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-700">
             <LayoutPanelTop className="h-3.5 w-3.5" aria-hidden="true" />
-            Results
+            Output
           </span>
         ) : undefined
       }
@@ -74,12 +83,12 @@ export function StudioOutputCard({
       <div className="space-y-4">
         {generatedAtLabel || isLoading ? (
           <StatusMessage
-            label="Results panel"
+            label="Output status"
             tone={isLoading ? "loading" : "info"}
-            message={isLoading ? "Generating the latest scope response." : generatedAtLabel ?? "Latest response ready."}
+            message={isLoading ? loadingMessage : generatedAtLabel ?? "Latest result ready."}
           />
         ) : null}
-        {errorMessage ? <StatusMessage tone="error" label="Error" message={errorMessage} /> : null}
+        {errorMessage ? <StatusMessage tone="error" label={errorLabel} message={errorMessage} /> : null}
         {children ?? <StatusMessage label="Empty state" message={emptyMessage} />}
       </div>
     </SectionCard>

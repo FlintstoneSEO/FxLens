@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
 import { StatusMessage } from "@/components/workspace/status-message";
-import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
+import { STUDIO_RUN_LABEL, STUDIO_RUNNING_LABEL, StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
@@ -291,12 +291,12 @@ export default function ScopePage() {
             <div className="space-y-3 rounded-2xl border border-border/80 bg-background/40 p-4">
               <StatusMessage
                 tone={errorMessage ? "error" : isSubmitting ? "loading" : result ? "success" : "info"}
-                label={errorMessage ? "Submission status" : isSubmitting ? "Generating" : result ? "Latest result" : "Ready"}
+                label={errorMessage ? "Run failed" : isSubmitting ? "Run in progress" : result ? "Latest run" : "Ready to run"}
                 message={
                   errorMessage
                     ? errorMessage
                     : isSubmitting
-                      ? "Generating a structured scope with modules, screens, entities, roles, flows, and implementation guidance."
+                      ? "Running the latest request. Results will appear here when processing finishes."
                       : result
                         ? "The latest successful response is loaded in the results panel. You can update the form and regenerate at any time."
                         : "Submit to generate structured screens, entities, roles, flows, and rollout recommendations."
@@ -321,7 +321,7 @@ export default function ScopePage() {
                   </p>
                 </div>
                 <Button type="submit" disabled={isSubmitDisabled} className="min-w-40">
-                  {isSubmitting ? "Generating..." : "Generate Scope"}
+                  {isSubmitting ? STUDIO_RUNNING_LABEL : STUDIO_RUN_LABEL}
                 </Button>
               </div>
             </div>

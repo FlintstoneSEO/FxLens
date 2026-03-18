@@ -82,7 +82,7 @@ export function BuildRequestSummary({ request }: { request: BuildRequest }) {
       <EmptyState
         title="No generated build output yet"
         description="Generated results will appear in the output panel with structured sections for screens, components, formulas, and implementation guidance."
-        actionLabel="Generate Build Output"
+        actionLabel="Run"
       />
     </div>
   );
@@ -94,7 +94,7 @@ export function BuildOutput({ request, response }: { request?: BuildRequest; res
       <EmptyState
         title="No generated build output yet"
         description="Run Build Studio after scoping your solution to see screen blueprints, reusable components, formulas, and implementation guidance in one structured workspace."
-        actionLabel="Generate Build Output"
+        actionLabel="Run"
       />
     );
   }

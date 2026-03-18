@@ -98,7 +98,7 @@ export function AnalyzeResults({ result }: AnalyzeResultsProps) {
       <EmptyState
         title="No analysis results yet"
         description="Configure the artifact details, run Analyze, and structured findings will appear here with issues, risks, recommendations, and optimized output."
-        actionLabel="Awaiting input"
+        actionLabel="Run"
         actionIcon={<Sparkles className="mr-2 h-4 w-4" />}
       />
     );

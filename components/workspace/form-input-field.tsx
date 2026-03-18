@@ -6,6 +6,7 @@ type FormInputFieldProps = {
   placeholder?: string;
   onChange: (value: string) => void;
   type?: "text" | "email" | "number";
+  disabled?: boolean;
 };
 
 export function FormInputField({
@@ -13,7 +14,8 @@ export function FormInputField({
   value,
   placeholder,
   onChange,
-  type = "text"
+  type = "text",
+  disabled = false
 }: FormInputFieldProps) {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange(event.target.value);
@@ -27,7 +29,8 @@ export function FormInputField({
         value={value}
         placeholder={placeholder}
         onChange={handleChange}
-        className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+        disabled={disabled}
+        className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70"
       />
     </label>
   );

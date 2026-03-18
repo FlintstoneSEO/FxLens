@@ -1,13 +1,15 @@
 "use client";
 
 import { useMemo, useState, type FormEvent } from "react";
-import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles } from "lucide-react";
+import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
+import { StatusMessage } from "@/components/workspace/status-message";
 import {
   BackendRecommendationCard,
   PerformanceRecommendationCard,
@@ -16,7 +18,14 @@ import {
   SuggestedComponentCard,
   SuggestedFormulaCard
 } from "@/components/workspace/result-cards";
-import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
+import {
+  STUDIO_ERROR_LABEL,
+  STUDIO_LOADING_MESSAGE,
+  STUDIO_RUN_LABEL,
+  STUDIO_RUNNING_LABEL,
+  StudioInputCard,
+  StudioOutputCard
+} from "@/components/workspace/studio-shell";
 import type { DataSourceType, RecommendationRequest, RecommendationResponse } from "@/lib/contracts/workspace";
 
 const dataSourceOptions: readonly { label: string; value: DataSourceType }[] = [
@@ -42,9 +51,14 @@ function getSummaryMetrics(result: RecommendationResponse) {
     { label: "Priority recommendations", value: result.recommendations.length },
     { label: "Performance actions", value: result.performanceRecommendations.length },
     { label: "Backend ideas", value: result.backendRecommendations.length },
-    { label: "Build assets", value: result.sqlArtifacts.length + result.suggestedComponents.length + result.suggestedFormulas.length }
+    {
+      label: "Build assets",
+      value: result.sqlArtifacts.length + result.suggestedComponents.length + result.suggestedFormulas.length
+    }
   ];
 }
+
+const sharedErrorMessage = "Unable to run Recommendations Studio right now. Please try again in a moment.";
 
 export default function RecommendationsPage() {
   const [formState, setFormState] = useState<RecommendationRequest>(initialFormState);
@@ -63,6 +77,14 @@ export default function RecommendationsPage() {
     [formState, isSubmitting]
   );
 
+  const generatedAtLabel = useMemo(() => {
+    if (!result?.generatedAt) {
+      return null;
+    }
+
+    return `Last run ${new Date(result.generatedAt).toLocaleString()}`;
+  }, [result]);
+
   const responseSections = useMemo(() => {
     if (!result) {
       return [];
@@ -72,7 +94,8 @@ export default function RecommendationsPage() {
       {
         key: "priorities",
         title: "Priority recommendations",
-        description: "The highest-value improvements to align the solution approach, simplify implementation, and reduce near-term risk.",
+        description:
+          "The highest-value improvements to align the solution approach, simplify implementation, and reduce near-term risk.",
         count: result.recommendations.length,
         content: (
           <div className="grid gap-4 lg:grid-cols-2">
@@ -118,7 +141,8 @@ export default function RecommendationsPage() {
       {
         key: "build-assets",
         title: "Implementation ideas",
-        description: "Reusable components and formulas that support the recommendation set and keep delivery consistent across screens.",
+        description:
+          "Reusable components and formulas that support the recommendation set and keep delivery consistent across screens.",
         count: result.suggestedComponents.length + result.suggestedFormulas.length,
         content: (
           <div className="space-y-4">
@@ -156,7 +180,9 @@ export default function RecommendationsPage() {
 
       if (!response.ok) {
         setResult(null);
-        setErrorMessage("error" in payload ? payload.error?.message ?? "Unable to generate recommendations right now." : "Unable to generate recommendations right now.");
+        setErrorMessage(
+          "error" in payload ? payload.error?.message ?? sharedErrorMessage : sharedErrorMessage
+        );
         return;
       }
 
@@ -173,30 +199,34 @@ export default function RecommendationsPage() {
     <PageContainer>
       <PageHeader
         title="Recommendations"
-        description="Submit architecture context and receive structured priorities, actions, and implementation ideas from the existing recommendation flow."
+        description="Submit architecture context and review structured priorities, actions, and implementation ideas in the same studio pattern used across the product."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <SectionCard
-          title="Recommendation Inputs"
-          description="Capture the scenario, architecture shape, and pain points the current recommendation route should evaluate."
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <StudioInputCard
+          title="Input"
+          description="Capture the scenario, architecture shape, and pain points the recommendation flow should evaluate."
           className="h-fit"
         >
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="rounded-xl border border-border/70 bg-background/40 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Scenario brief</p>
-              <div className="mt-4 space-y-4">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <SectionCard
+              title="Scenario brief"
+              description="Describe the solution context, delivery scale, and technical shape that should guide the recommendations."
+              className="border-border/60 bg-background/40 p-5 shadow-none"
+            >
+              <div className="space-y-5">
                 <FormTextareaField
                   label="Scenario"
                   value={formState.scenario}
                   rows={4}
                   placeholder="Describe the app or workflow that needs recommendations"
                   onChange={(scenario) => setFormState((current) => ({ ...current, scenario }))}
+                  disabled={isSubmitting}
                 />
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block space-y-1.5">
-                    <span className="text-sm font-medium">Data Source Mix</span>
+                    <span className="text-sm font-medium">Data source mix</span>
                     <select
                       value={formState.dataSourceMix}
                       onChange={(event) =>
@@ -206,6 +236,7 @@ export default function RecommendationsPage() {
                         }))
                       }
                       className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                      disabled={isSubmitting}
                     >
                       {dataSourceOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -216,7 +247,7 @@ export default function RecommendationsPage() {
                   </label>
 
                   <FormInputField
-                    label="Screen Count"
+                    label="Screen count"
                     type="number"
                     value={String(formState.screenCount)}
                     placeholder="0"
@@ -226,20 +257,17 @@ export default function RecommendationsPage() {
                         screenCount: Number(screenCount)
                       }))
                     }
+                    disabled={isSubmitting}
                   />
                 </div>
-              </div>
-            </div>
 
-            <div className="rounded-xl border border-border/70 bg-background/40 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Architecture context</p>
-              <div className="mt-4 space-y-4">
                 <FormTextareaField
-                  label="Architecture Notes"
+                  label="Architecture notes"
                   value={formState.architectureNotes}
                   rows={5}
                   placeholder="Share current architecture constraints, backend choices, and integration notes"
                   onChange={(architectureNotes) => setFormState((current) => ({ ...current, architectureNotes }))}
+                  disabled={isSubmitting}
                 />
 
                 <FormTextareaField
@@ -248,71 +276,51 @@ export default function RecommendationsPage() {
                   rows={4}
                   placeholder="Describe performance, maintainability, or scalability concerns"
                   onChange={(symptoms) => setFormState((current) => ({ ...current, symptoms }))}
+                  disabled={isSubmitting}
                 />
               </div>
-            </div>
+            </SectionCard>
 
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border/80 bg-background/30 px-4 py-3">
-              <Button type="submit" disabled={isSubmitDisabled}>
-                {isSubmitting ? (
-                  <span className="inline-flex items-center gap-2">
-                    <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    Generating recommendations...
-                  </span>
-                ) : (
-                  "Generate Recommendations"
-                )}
-              </Button>
-              <p className="text-sm text-muted-foreground">
-                The page submits directly to <code className="rounded bg-muted px-1 py-0.5 text-xs">/api/recommend</code> and renders the structured response below.
-              </p>
+            <div className="space-y-3 rounded-2xl border border-border/80 bg-background/40 p-4">
+              <StatusMessage
+                tone={errorMessage ? "error" : isSubmitting ? "loading" : result ? "success" : "info"}
+                label={errorMessage ? STUDIO_ERROR_LABEL : isSubmitting ? "Run in progress" : result ? "Latest run" : "Ready to run"}
+                message={
+                  errorMessage
+                    ? errorMessage
+                    : isSubmitting
+                      ? STUDIO_LOADING_MESSAGE
+                      : result
+                        ? "The latest recommendation set is loaded in the output panel. Refine the scenario and run again whenever you need a new pass."
+                        : "Complete the scenario brief to generate recommendations, performance actions, backend ideas, and build assets."
+                }
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+                <p className="text-sm text-muted-foreground">Each run sends the current brief to the existing recommendation route and refreshes the output panel.</p>
+                <Button type="submit" disabled={isSubmitDisabled} className="min-w-32">
+                  {isSubmitting ? STUDIO_RUNNING_LABEL : STUDIO_RUN_LABEL}
+                </Button>
+              </div>
             </div>
           </form>
-        </SectionCard>
-
-        <div className="space-y-6">
-          {errorMessage ? <StatusMessage message={errorMessage} tone="error" label="Request failed" /> : null}
-
-          {isSubmitting ? (
-            <SectionCard
-              title="Generating recommendation set"
-              description="Loading the current recommendation response and organizing it into delivery-focused sections."
-            >
-              <div className="space-y-3">
-                {[
-                  "Reviewing scenario and architecture notes",
-                  "Prioritizing implementation recommendations",
-                  "Grouping backend, SQL, component, and formula ideas"
-                ].map((step) => (
-                  <div key={step} className="flex items-center gap-3 rounded-xl border border-border/70 bg-background/50 p-4 text-sm text-muted-foreground">
-                    <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-                    <span>{step}</span>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          ) : null}
-
-          {!result && !errorMessage && !isSubmitting ? (
-            <SectionCard
-              title="Recommendations Studio output"
-              description="Run the current flow to review the structured recommendation response in the same workspace."
-            >
-              <StatusMessage message="Submit the form to load priority recommendations, performance actions, backend ideas, and implementation assets." />
-            </SectionCard>
-          ) : null}
+        </StudioInputCard>
 
         <StudioOutputCard
           title="Output"
-          description="Review the current recommendation response, supporting artifacts, and implementation guidance in one consistent output space."
+          description="Review the recommendation response, supporting artifacts, and implementation guidance in one consistent output space."
           errorMessage={errorMessage}
-          emptyMessage="Submit the input to generate recommendation output for this studio."
+          errorLabel={STUDIO_ERROR_LABEL}
+          emptyMessage="Run Recommendations Studio to generate priority recommendations and implementation ideas for this scenario."
+          generatedAtLabel={generatedAtLabel}
+          isLoading={isSubmitting}
         >
           {result ? (
-            <>
+            <div className="space-y-6">
               <SectionCard
-                title="Response Summary"
+                title="Response summary"
                 description={`Recommendation response generated ${new Date(result.generatedAt).toLocaleString()}.`}
+                className="border-border/60 bg-background/40 p-5 shadow-none"
               >
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {getSummaryMetrics(result).map((metric) => (
@@ -328,9 +336,9 @@ export default function RecommendationsPage() {
                     <div className="flex items-start gap-3">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       <div>
-                        <p className="font-semibold">Submission flow confirmed</p>
+                        <p className="font-semibold">Run completed</p>
                         <p className="mt-1 text-emerald-800/90">
-                          Inputs were accepted, the page handled the response successfully, and results were grouped into delivery-ready sections.
+                          Inputs were accepted and the response was organized into delivery-ready sections for review.
                         </p>
                       </div>
                     </div>
@@ -339,17 +347,21 @@ export default function RecommendationsPage() {
                     <div className="flex items-start gap-3">
                       <Sparkles className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                       <div>
-                        <p className="font-semibold">Focus areas</p>
+                        <p className="font-semibold">Suggested review order</p>
                         <p className="mt-1 text-amber-800/90">
-                          Review priorities first, then move through actions and implementation ideas to shape the next delivery pass.
+                          Start with priorities, then review actions, and finish with implementation ideas to shape the next delivery pass.
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </SectionCard>
 
-              <SectionCard title="How to use this response" description="Read the output in the same order other studios present decision-ready guidance.">
+              <SectionCard
+                title="How to use this output"
+                description="Read the response in the same order other studios present decision-ready guidance."
+                className="border-border/60 bg-background/40 p-5 shadow-none"
+              >
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
                     {
@@ -380,14 +392,19 @@ export default function RecommendationsPage() {
               </SectionCard>
 
               {responseSections.map((section) => (
-                <SectionCard key={section.key} title={section.title} description={section.description}>
+                <SectionCard
+                  key={section.key}
+                  title={section.title}
+                  description={section.description}
+                  className="border-border/60 bg-background/40 p-5 shadow-none"
+                >
                   <div className="mb-4 inline-flex rounded-full border border-border/70 bg-background px-3 py-1 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                     {section.count} item{section.count === 1 ? "" : "s"}
                   </div>
                   {section.content}
                 </SectionCard>
               ))}
-            </>
+            </div>
           ) : null}
         </StudioOutputCard>
       </div>
