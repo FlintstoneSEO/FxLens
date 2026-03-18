@@ -1,21 +1,19 @@
-import { NextResponse } from "next/server";
-
 import { createScopeMockResponse } from "@/lib/mocks/api";
 import { generateScopeWithOpenAI } from "@/lib/openai/workspace";
-import { parseAndValidateRequest, scopeRequestSchema } from "@/lib/validation/workspace";
+import { createValidationErrorResponse, parseAndValidateRequest, scopeRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
   const parsed = await parseAndValidateRequest(request, scopeRequestSchema);
 
   if (!parsed.success) {
-    return NextResponse.json(parsed.error, { status: 400 });
+    return createValidationErrorResponse(parsed.error);
   }
 
   try {
     const response = await generateScopeWithOpenAI(parsed.data);
-    return NextResponse.json(response);
+    return Response.json(response);
   } catch {
     const fallback = createScopeMockResponse(parsed.data);
-    return NextResponse.json(fallback);
+    return Response.json(fallback);
   }
 }
