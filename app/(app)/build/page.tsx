@@ -186,14 +186,6 @@ export default function BuildPage() {
     ],
   );
 
-  const generatedAtLabel = useMemo(() => {
-    if (!response?.generatedAt) {
-      return null;
-    }
-
-    return `Last run ${new Date(response.generatedAt).toLocaleString()}`;
-  }, [response]);
-
   const buildRequest: BuildRequest = {
     mode: selectedArtifact.mode,
     promptTitle: formState.workspaceTitle.trim(),
@@ -361,7 +353,7 @@ export default function BuildPage() {
 
                     return (
                       <button
-                        key={option}
+                        key={option.id}
                         type="button"
                         onClick={() => updateField("buildIntent", option.id)}
                         disabled={isSubmitting}
@@ -394,7 +386,7 @@ export default function BuildPage() {
                     );
                   })}
                 </div>
-              </SectionCard>
+              </div>
 
               <div className="space-y-3">
                 <div>
@@ -410,7 +402,7 @@ export default function BuildPage() {
 
                     return (
                       <button
-                        key={option}
+                        key={option.id}
                         type="button"
                         onClick={() => updateField("artifactType", option.id)}
                         disabled={isSubmitting}
@@ -475,6 +467,7 @@ export default function BuildPage() {
                 </label>
               </div>
             </div>
+          </SectionCard>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard
