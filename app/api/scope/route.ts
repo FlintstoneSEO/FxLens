@@ -1,6 +1,6 @@
 import { createScopeMockResponse } from "@/lib/mocks/api";
 import { generateScopeWithOpenAI } from "@/lib/openai/workspace";
-import { persistSuccessfulStudioRunSafely } from "@/lib/server/studio-run-history";
+import { createStudioRun } from "@/lib/server/studio-runs";
 import { createValidationErrorResponse, parseAndValidateRequest, scopeRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -16,22 +16,18 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const response = await generateScopeWithOpenAI(requestData);
-    await persistSuccessfulStudioRunSafely({
-      studioArea: "scope_studio",
-      route: "/api/scope",
-      requestPayload: requestData,
-      responsePayload: response,
-      startedAt
+    await createStudioRun({
+      studioType: "scope",
+      inputPayload: requestData,
+      outputPayload: response
     });
     return Response.json(response);
   } catch {
     const fallback = createScopeMockResponse(requestData);
-    await persistSuccessfulStudioRunSafely({
-      studioArea: "scope_studio",
-      route: "/api/scope",
-      requestPayload: requestData,
-      responsePayload: fallback,
-      startedAt
+    await createStudioRun({
+      studioType: "scope",
+      inputPayload: requestData,
+      outputPayload: fallback
     });
     return Response.json(fallback);
   }

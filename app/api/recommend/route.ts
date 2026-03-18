@@ -1,5 +1,5 @@
 import { createRecommendationMockResponse } from "@/lib/mocks/api";
-import { persistSuccessfulStudioRunSafely } from "@/lib/server/studio-run-history";
+import { createStudioRun } from "@/lib/server/studio-runs";
 import { createValidationErrorResponse, parseAndValidateRequest, recommendationRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -12,12 +12,10 @@ export async function POST(request: Request): Promise<Response> {
   const requestData = parsed.data as import("@/lib/contracts/workspace").RecommendationRequest;
   const response = createRecommendationMockResponse(requestData);
 
-  await persistSuccessfulStudioRunSafely({
-    studioArea: "recommendation_engine",
-    route: "/api/recommend",
-    requestPayload: requestData,
-    responsePayload: response,
-    startedAt: new Date().toISOString()
+  await createStudioRun({
+    studioType: "recommendations",
+    inputPayload: requestData,
+    outputPayload: response
   });
 
   return Response.json(response);

@@ -1,6 +1,6 @@
 import { createBuildMockResponse } from "@/lib/mocks/api";
 import { generateBuildWithOpenAI } from "@/lib/openai/workspace";
-import { persistSuccessfulStudioRunSafely } from "@/lib/server/studio-run-history";
+import { createStudioRun } from "@/lib/server/studio-runs";
 import { buildRequestSchema, createValidationErrorResponse, parseAndValidateRequest } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -16,22 +16,18 @@ export async function POST(request: Request): Promise<Response> {
 
   try {
     const response = await generateBuildWithOpenAI(requestData);
-    await persistSuccessfulStudioRunSafely({
-      studioArea: "build_studio",
-      route: "/api/generate",
-      requestPayload: requestData,
-      responsePayload: response,
-      startedAt
+    await createStudioRun({
+      studioType: "build",
+      inputPayload: requestData,
+      outputPayload: response
     });
     return Response.json(response);
   } catch {
     const fallback = createBuildMockResponse(requestData);
-    await persistSuccessfulStudioRunSafely({
-      studioArea: "build_studio",
-      route: "/api/generate",
-      requestPayload: requestData,
-      responsePayload: fallback,
-      startedAt
+    await createStudioRun({
+      studioType: "build",
+      inputPayload: requestData,
+      outputPayload: fallback
     });
     return Response.json(fallback);
   }
