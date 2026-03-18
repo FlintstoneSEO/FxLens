@@ -91,9 +91,10 @@ export default function AnalyzePage() {
   const [response, setResponse] = useState<AnalyzeResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isSubmitDisabled = useMemo(() => {
-    return (
+  const isSubmitDisabled = useMemo(
+    () =>
       isSubmitting ||
       formState.artifactName.trim().length === 0 ||
       formState.artifactPurpose.trim().length === 0 ||
@@ -115,17 +116,19 @@ export default function AnalyzePage() {
     setErrorMessage(null);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const updateField = <TKey extends keyof AnalyzeRequest>(field: TKey, value: AnalyzeRequest[TKey]) => {
+    setFormState((current) => ({ ...current, [field]: value }));
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const apiResponse = await fetch("/api/analyze", {
+      const response = await fetch("/api/analyze", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...formState,
           relatedFormulas: formState.relatedFormulas?.trim() ? formState.relatedFormulas : undefined
@@ -283,23 +286,18 @@ export default function AnalyzePage() {
                     <p className="text-sm text-muted-foreground">{description}</p>
                   </div>
                 </div>
-              ))}
+              </div>
+              <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance and maintainability notes</p>
+                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                  {[...result.performanceNotes, ...result.maintainabilityNotes].map((item) => (
+                    <li key={item} className="list-inside list-disc">{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Prompt starters"
-            description="Useful directions to include when you want focused findings instead of a generic review."
-          >
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              {promptStarters.map((starter) => (
-                <li key={starter} className="rounded-lg border border-dashed border-border bg-background/60 px-4 py-3">
-                  {starter}
-                </li>
-              ))}
-            </ul>
-          </SectionCard>
-        </div>
+          ) : null}
+        </StudioOutputCard>
       </div>
     </PageContainer>
   );

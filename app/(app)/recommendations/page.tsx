@@ -6,7 +6,6 @@ import { AlertCircle, CheckCircle2, LoaderCircle, Sparkles } from "lucide-react"
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
 import {
@@ -17,7 +16,7 @@ import {
   SuggestedComponentCard,
   SuggestedFormulaCard
 } from "@/components/workspace/result-cards";
-import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, RecommendationRequest, RecommendationResponse } from "@/lib/contracts/workspace";
 
 const dataSourceOptions: readonly { label: string; value: DataSourceType }[] = [
@@ -164,7 +163,7 @@ export default function RecommendationsPage() {
       setResult(payload as RecommendationResponse);
     } catch {
       setResult(null);
-      setErrorMessage("Unable to reach the recommendation service. Please try again.");
+      setErrorMessage(sharedErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -303,6 +302,12 @@ export default function RecommendationsPage() {
             </SectionCard>
           ) : null}
 
+        <StudioOutputCard
+          title="Output"
+          description="Review the current recommendation response, supporting artifacts, and implementation guidance in one consistent output space."
+          errorMessage={errorMessage}
+          emptyMessage="Submit the input to generate recommendation output for this studio."
+        >
           {result ? (
             <>
               <SectionCard
@@ -342,7 +347,7 @@ export default function RecommendationsPage() {
                     </div>
                   </div>
                 </div>
-              </SectionCard>
+              </div>
 
               <SectionCard title="How to use this response" description="Read the output in the same order other studios present decision-ready guidance.">
                 <div className="grid gap-3 md:grid-cols-3">
@@ -384,7 +389,7 @@ export default function RecommendationsPage() {
               ))}
             </>
           ) : null}
-        </div>
+        </StudioOutputCard>
       </div>
     </PageContainer>
   );

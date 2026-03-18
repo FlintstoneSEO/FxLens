@@ -12,17 +12,6 @@ import { StatusMessage } from "@/components/workspace/status-message";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
-const initialFormState: ScopeRequest = {
-  projectName: "",
-  businessObjective: "",
-  targetUsersRoles: "",
-  requirementsText: "",
-  meetingNotes: "",
-  preferredDataSource: "dataverse",
-  integrationNeeds: "",
-  desiredOutputs: ""
-};
-
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
   { label: "Dataverse", value: "dataverse" },
   { label: "SQL", value: "sql" },
@@ -31,6 +20,19 @@ const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
   { label: "Mixed", value: "mixed" },
   { label: "Other", value: "other" }
 ];
+
+const initialFormState: ScopeRequest = {
+  projectName: "Vendor onboarding portal",
+  businessObjective: "Reduce cycle time for onboarding new vendors and standardize approvals.",
+  targetUsersRoles: "Procurement coordinators, approvers, compliance reviewers, and finance analysts.",
+  requirementsText:
+    "Track intake, review, approvals, compliance checks, and handoff to finance with clear statuses and notifications.",
+  meetingNotes:
+    "Current process lives across email, spreadsheets, and Teams. Teams need a single operational workspace.",
+  preferredDataSource: "dataverse",
+  integrationNeeds: "ERP vendor master sync, Teams notifications, and document storage.",
+  desiredOutputs: "Suggested screens, data entities, backend guidance, risks, and an MVP plan."
+};
 
 function getValidationMessage(error: unknown): string {
   if (
@@ -42,26 +44,24 @@ function getValidationMessage(error: unknown): string {
     "message" in error.error &&
     typeof error.error.message === "string"
   ) {
-    const validationError = error as ValidationErrorPayload;
-    return validationError.error.message;
+    return (error as ValidationErrorPayload).error.message;
   }
 
-  return "Unable to create a scope draft right now. Please try again.";
+  return "Something went wrong while preparing output. Please try again.";
 }
-
-const sectionHintClassName = "text-xs uppercase tracking-[0.18em] text-muted-foreground";
-const fieldClassName =
-  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background transition placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function ScopePage() {
   const [formState, setFormState] = useState<ScopeRequest>(initialFormState);
+  const [result, setResult] = useState<ScopeResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const [scopeResponse, setScopeResponse] = useState<ScopeResponse | null>(null);
 
-  const isSubmitDisabled = useMemo(() => {
-    return Object.entries(formState).some(([key, value]) => key !== "context" && value.trim().length === 0);
-  }, [formState]);
+  const isSubmitDisabled = useMemo(
+    () =>
+      isSubmitting ||
+      Object.entries(formState).some(([key, value]) => key !== "context" && String(value).trim().length === 0),
+    [formState, isSubmitting]
+  );
 
   const updateField = <TKey extends keyof ScopeRequest>(field: TKey, value: ScopeRequest[TKey]) => {
     setFormState((current) => ({
@@ -74,27 +74,25 @@ export default function ScopePage() {
     }
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
-    setSubmitError(null);
+    setErrorMessage(null);
 
     try {
       const response = await fetch("/api/scope", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState)
       });
 
-      const data = (await response.json()) as ScopeResponse | ValidationErrorPayload;
+      const payload = (await response.json()) as ScopeResponse | ValidationErrorPayload;
 
       if (!response.ok) {
-        throw data;
+        throw payload;
       }
 
-      setScopeResponse(data as ScopeResponse);
+      setResult(payload as ScopeResponse);
     } catch (error) {
       setSubmitError(getValidationMessage(error));
       setScopeResponse(null);
@@ -107,13 +105,13 @@ export default function ScopePage() {
     <PageContainer>
       <PageHeader
         title="Scope Studio"
-        description="Transform requirements into app structure recommendations including screens, entities, roles, SQL artifacts, and flows."
+        description="Capture the project context, align on the ask, and generate a polished scoping output for the next team discussion."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
-        <SectionCard
-          title="Scoping Workspace"
-          description="Capture the core product context, operational requirements, and delivery constraints before architecture generation."
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <StudioInputCard
+          title="Input"
+          description="Capture the core project details, delivery constraints, and desired outcome before generating a scoping pass."
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
             <section className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
@@ -250,56 +248,59 @@ export default function ScopePage() {
               </Button>
             </div>
           </form>
-        </SectionCard>
+        </StudioInputCard>
 
-        <div className="space-y-6">
-          <SectionCard
-            title="What to include"
-            description="Use this checklist to keep requirement intake detailed enough for downstream screen, role, and data recommendations."
-          >
-            <div className="space-y-4 text-sm text-muted-foreground">
-              <div className="flex gap-3 rounded-lg border border-border/70 bg-background/40 p-3">
-                <ClipboardList className="mt-0.5 h-4 w-4 text-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Business problem</p>
-                  <p>State the current pain point, desired outcome, and what teams do today.</p>
+        <StudioOutputCard
+          title="Output"
+          description="Review the generated scoping summary, recommended structure, and downstream delivery notes in one place."
+          errorMessage={errorMessage}
+          emptyMessage="Submit the input to generate a scoping summary for this studio."
+        >
+          {result ? (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Summary</p>
+                <p className="mt-2 text-sm text-foreground">{result.appSummary}</p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recommended modules</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {result.recommendedModules.map((item) => (
+                      <li key={item} className="list-inside list-disc">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Data entities</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {result.dataEntities.map((item) => (
+                      <li key={item} className="list-inside list-disc">{item}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              <div className="flex gap-3 rounded-lg border border-border/70 bg-background/40 p-3">
-                <Users className="mt-0.5 h-4 w-4 text-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Actors and permissions</p>
-                  <p>Clarify who initiates work, who approves, and who only needs visibility.</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Risks and assumptions</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {result.risksAndAssumptions.map((item) => (
+                      <li key={item} className="list-inside list-disc">{item}</li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
-              <div className="flex gap-3 rounded-lg border border-border/70 bg-background/40 p-3">
-                <Flag className="mt-0.5 h-4 w-4 text-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Workflow milestones</p>
-                  <p>Identify statuses, decisions, escalations, and any automation triggers.</p>
-                </div>
-              </div>
-              <div className="flex gap-3 rounded-lg border border-border/70 bg-background/40 p-3">
-                <ShieldAlert className="mt-0.5 h-4 w-4 text-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Delivery guardrails</p>
-                  <p>Note constraints around compliance, deadlines, integrations, and data sensitivity.</p>
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">MVP plan</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {result.mvpPlan.map((item) => (
+                      <li key={item} className="list-inside list-disc">{item}</li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>
-          </SectionCard>
-
-          <SectionCard
-            title="Recommended source material"
-            description="Optional inputs that typically improve scoping quality once upload support is added."
-          >
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="rounded-lg border border-border/70 bg-background/40 px-3 py-2">Discovery notes, workshop outputs, or stakeholder interview summaries.</li>
-              <li className="rounded-lg border border-border/70 bg-background/40 px-3 py-2">Existing SOPs, spreadsheets, forms, or screenshots of the current process.</li>
-              <li className="rounded-lg border border-border/70 bg-background/40 px-3 py-2">Security, compliance, or reporting requirements that affect app design.</li>
-            </ul>
-          </SectionCard>
-        </div>
+          ) : null}
+        </StudioOutputCard>
       </div>
 
       <div className="mt-6">
