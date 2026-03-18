@@ -176,7 +176,7 @@ export default function SolutionReviewPage() {
               <div className="rounded-lg border border-dashed border-border bg-background/60 p-4 text-sm text-muted-foreground">
                 {solutionName.trim()
                   ? `Preparing a review workspace for ${solutionName}. Add as much implementation and architecture detail as you have available.`
-                  : "Add a solution name and paste your notes to create a reusable review brief for Phase 2."}
+                  : "Add a solution name and paste your notes to create a reusable review brief for your team."}
               </div>
             </div>
           </SectionCard>
