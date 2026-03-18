@@ -12,6 +12,8 @@ export async function POST(request: Request): Promise<Response> {
 
   const requestData = parsed.data as import("@/lib/contracts/workspace").ScopeRequest;
 
+  const startedAt = new Date().toISOString();
+
   try {
     const response = await generateScopeWithOpenAI(requestData);
     await createStudioRun({
