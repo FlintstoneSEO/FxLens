@@ -11,7 +11,7 @@ const routeLabels: Record<string, string> = {
   "/analyze": "Analyze Studio",
   "/solution-review": "Solution Review",
   "/history": "History",
-  "/prompts": "Recommendations",
+  "/prompts": "Prompts",
   "/settings": "Settings"
 };
 

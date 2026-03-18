@@ -53,10 +53,12 @@ export default function HomePage() {
           This first phase establishes a clear product shell for core studios before we
           implement data models, authentication, and generation workflows.
         </p>
+
         <div className="flex gap-3">
           <Link href="/scope">
             <Button>Start with Scope Studio</Button>
           </Link>
+
           <Link href="/dashboard">
             <Button variant="ghost">View product roadmap</Button>
           </Link>

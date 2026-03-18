@@ -1,5 +1,4 @@
 import Link from "next/link";
-
 import { ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ export function StudioCard({
         <h2 className="text-xl font-semibold">{title}</h2>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
+
       <ul className="mb-5 space-y-2 text-sm">
         {capabilities.map((capability) => (
           <li key={capability} className="list-inside list-disc text-muted-foreground">
@@ -30,6 +30,7 @@ export function StudioCard({
           </li>
         ))}
       </ul>
+
       <Link href={href}>
         <Button variant="secondary" className="w-full justify-between">
           Explore
