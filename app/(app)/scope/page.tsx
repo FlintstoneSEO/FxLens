@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { ClipboardList, Flag, Loader2, ShieldAlert, Sparkles, Users } from "lucide-react";
+import React, { FormEvent, useMemo, useState } from "react";
+import { Loader2, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
 import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
@@ -20,6 +21,11 @@ const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
   { label: "Mixed", value: "mixed" },
   { label: "Other", value: "other" }
 ];
+
+const fieldClassName =
+  "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring";
+
+const sectionHintClassName = "text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground";
 
 const initialFormState: ScopeRequest = {
   projectName: "Vendor onboarding portal",
@@ -69,8 +75,8 @@ export default function ScopePage() {
       [field]: value
     }));
 
-    if (submitError) {
-      setSubmitError(null);
+    if (errorMessage) {
+      setErrorMessage(null);
     }
   };
 
@@ -94,8 +100,8 @@ export default function ScopePage() {
 
       setResult(payload as ScopeResponse);
     } catch (error) {
-      setSubmitError(getValidationMessage(error));
-      setScopeResponse(null);
+      setErrorMessage(getValidationMessage(error));
+      setResult(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -221,8 +227,8 @@ export default function ScopePage() {
                 </label>
                 <div className="space-y-1.5 text-sm">
                   <span className="font-medium">Submission status</span>
-                  {submitError ? (
-                    <StatusMessage message={submitError} tone="error" />
+                  {errorMessage ? (
+                    <StatusMessage message={errorMessage} tone="error" />
                   ) : (
                     <StatusMessage message="Submit to generate structured screens, entities, roles, flows, and rollout recommendations." />
                   )}
@@ -308,7 +314,7 @@ export default function ScopePage() {
           title="Scope results"
           description="Structured recommendations returned by the Scope API for the latest successful submission."
         >
-          <ScopeResultsPanel result={scopeResponse} />
+          <ScopeResultsPanel result={result} />
         </SectionCard>
       </div>
     </PageContainer>
