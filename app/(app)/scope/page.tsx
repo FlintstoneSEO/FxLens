@@ -4,12 +4,99 @@ import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
+import { FormInputField } from "@/components/workspace/form-input-field";
+import { FormTextareaField } from "@/components/workspace/form-textarea-field";
+import { OutputBlock } from "@/components/workspace/output-block";
+import { StatusMessage } from "@/components/workspace/status-message";
+import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
+import type { ValidationErrorPayload } from "@/lib/validation/workspace";
+
+const initialFormState: ScopeRequest = {
+  projectName: "",
+  businessObjective: "",
+  targetUsersRoles: "",
+  requirementsText: "",
+  meetingNotes: "",
+  preferredDataSource: "dataverse",
+  integrationNeeds: "",
+  desiredOutputs: ""
+};
+
+const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
+  { label: "Dataverse", value: "dataverse" },
+  { label: "SQL", value: "sql" },
+  { label: "SharePoint", value: "sharepoint" },
+  { label: "API", value: "api" },
+  { label: "Mixed", value: "mixed" },
+  { label: "Other", value: "other" }
+];
+
+function getValidationMessage(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "error" in error &&
+    typeof error.error === "object" &&
+    error.error !== null &&
+    "message" in error.error &&
+    typeof error.error.message === "string"
+  ) {
+    const validationError = error as ValidationErrorPayload;
+    return validationError.error.message;
+  }
+
+  return "Unable to create a scope draft right now. Please try again.";
+}
 
 const sectionHintClassName = "text-xs uppercase tracking-[0.18em] text-muted-foreground";
 const fieldClassName =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none ring-offset-background transition placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-ring";
 
 export default function ScopePage() {
+  const [formState, setFormState] = useState<ScopeRequest>(initialFormState);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [scopeResponse, setScopeResponse] = useState<ScopeResponse | null>(null);
+
+  const isSubmitDisabled = useMemo(() => {
+    return Object.entries(formState).some(([key, value]) => key !== "context" && value.trim().length === 0);
+  }, [formState]);
+
+  const updateField = <TKey extends keyof ScopeRequest>(field: TKey, value: ScopeRequest[TKey]) => {
+    setFormState((current) => ({
+      ...current,
+      [field]: value
+    }));
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch("/api/scope", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formState)
+      });
+
+      const data = (await response.json()) as ScopeResponse | ValidationErrorPayload;
+
+      if (!response.ok) {
+        throw data;
+      }
+
+      setScopeResponse(data as ScopeResponse);
+    } catch (error) {
+      setSubmitError(getValidationMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
