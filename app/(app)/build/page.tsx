@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { Blocks, FileCode2, Layers3, LoaderCircle, Rocket, Sparkles, Wand2 } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -74,18 +75,26 @@ const outputPreferences = [
   "Test scenarios"
 ] as const;
 
-export default function BuildPage() {
-  const [formState, setFormState] = useState(initialState);
-  const [result, setResult] = useState<null | { summary: string; nextSteps: string[]; guardrails: string[] }>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+function toggleSelection(
+  value: string,
+  setValues: Dispatch<SetStateAction<string[]>>
+) {
+  setValues((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]));
+}
 
-  const isSubmitDisabled = useMemo(
-    () => isSubmitting || Object.values(formState).some((value) => value.trim().length === 0),
-    [formState, isSubmitting]
-  );
-  const [submittedRequest, setSubmittedRequest] = useState<BuildRequest | null>(null);
+export default function BuildPage() {
+  // Form state
+  const [workspaceTitle, setWorkspaceTitle] = useState("");
+  const [buildIntent, setBuildIntent] = useState<string>("power-first");
+  const [artifactType, setArtifactType] = useState<string>("application");
+  const [technicalNotes, setTechnicalNotes] = useState("");
+  const [successMetric, setSuccessMetric] = useState("");
+  const [selectedConstraints, setSelectedConstraints] = useState<string[]>([]);
+  const [selectedOutputs, setSelectedOutputs] = useState<string[]>([]);
+
+  // Result state
   const [response, setResponse] = useState<BuildResponse | null>(null);
+  const [submittedRequest, setSubmittedRequest] = useState<BuildRequest | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -93,10 +102,12 @@ export default function BuildPage() {
     () => intentOptions.find((option) => option.id === buildIntent) ?? intentOptions[0],
     [buildIntent]
   );
+
   const selectedArtifact = useMemo(
     () => artifactOptions.find((option) => option.id === artifactType) ?? artifactOptions[0],
     [artifactType]
   );
+
   const isSubmitDisabled = useMemo(
     () =>
       isSubmitting ||
@@ -105,25 +116,6 @@ export default function BuildPage() {
       successMetric.trim().length === 0,
     [isSubmitting, successMetric, technicalNotes, workspaceTitle]
   );
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    window.setTimeout(() => {
-      setResult({
-        summary: `${formState.workspaceTitle} is ready for a ${formState.artifactType.toLowerCase()} focused on ${formState.buildIntent.toLowerCase()}.`,
-        nextSteps: [
-          `Use the technical notes to outline the first-pass screen structure and interactions.`,
-          `Apply the requested output preferences: ${formState.outputPreferences}`,
-          `Validate success against: ${formState.successMetric}`
-        ],
-        guardrails: formState.constraints.split(",").map((item) => item.trim()).filter(Boolean)
-      });
-      setIsSubmitting(false);
-    }, 300);
-  };
 
   const buildRequest: BuildRequest = {
     mode: selectedArtifact.mode,
@@ -156,7 +148,6 @@ export default function BuildPage() {
 
       if (!apiResponse.ok) {
         setResponse(null);
-        setSubmittedRequest(buildRequest);
         setErrorMessage(
           "error" in payload && payload.error?.message
             ? payload.error.message
@@ -169,7 +160,6 @@ export default function BuildPage() {
       setResponse(payload as BuildResponse);
     } catch {
       setResponse(null);
-      setSubmittedRequest(buildRequest);
       setErrorMessage("We couldn't reach the build service right now. Please try again in a moment.");
     } finally {
       setIsSubmitting(false);
@@ -320,6 +310,7 @@ export default function BuildPage() {
                 </label>
               </div>
             </div>
+          </SectionCard>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard
@@ -334,7 +325,7 @@ export default function BuildPage() {
                     <button
                       key={option}
                       type="button"
-                      onClick={() => toggleSelection(option, selectedConstraints, setSelectedConstraints)}
+                      onClick={() => toggleSelection(option, setSelectedConstraints)}
                       className={cn(
                         "flex w-full items-start justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm transition",
                         isSelected
@@ -367,7 +358,7 @@ export default function BuildPage() {
                     <button
                       key={option}
                       type="button"
-                      onClick={() => toggleSelection(option, selectedOutputs, setSelectedOutputs)}
+                      onClick={() => toggleSelection(option, setSelectedOutputs)}
                       className={cn(
                         "flex w-full items-start justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm transition",
                         isSelected
@@ -417,10 +408,12 @@ export default function BuildPage() {
             description="Review the submitted brief and generated response in clearly separated, structured output sections."
           >
             <div className="space-y-5">
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Summary</p>
-                <p className="mt-2 text-sm text-foreground">{result.summary}</p>
-              </div>
+              {response ? (
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary/80">Summary</p>
+                  <p className="mt-2 text-sm text-foreground">{response.summary}</p>
+                </div>
+              ) : null}
 
               {errorMessage ? (
                 <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
@@ -431,8 +424,8 @@ export default function BuildPage() {
 
               <BuildOutput request={submittedRequest ?? buildRequest} response={response ?? undefined} />
             </div>
-          ) : null}
-        </StudioOutputCard>
+          </SectionCard>
+        </div>
       </div>
     </PageContainer>
   );
