@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import React, { useMemo, useState } from "react";
+import { ClipboardList, Flag, Loader2, ShieldAlert, Sparkles, Users } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { FormInputField } from "@/components/workspace/form-input-field";
-import { FormTextareaField } from "@/components/workspace/form-textarea-field";
-import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
+import { SectionCard } from "@/components/ui/section-card";
+import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
+import { StatusMessage } from "@/components/workspace/status-message";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
@@ -63,7 +64,14 @@ export default function ScopePage() {
   );
 
   const updateField = <TKey extends keyof ScopeRequest>(field: TKey, value: ScopeRequest[TKey]) => {
-    setFormState((current) => ({ ...current, [field]: value }));
+    setFormState((current) => ({
+      ...current,
+      [field]: value
+    }));
+
+    if (submitError) {
+      setSubmitError(null);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -86,8 +94,8 @@ export default function ScopePage() {
 
       setResult(payload as ScopeResponse);
     } catch (error) {
-      setResult(null);
-      setErrorMessage(getValidationMessage(error));
+      setSubmitError(getValidationMessage(error));
+      setScopeResponse(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,88 +114,137 @@ export default function ScopePage() {
           description="Capture the core project details, delivery constraints, and desired outcome before generating a scoping pass."
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormInputField
-                label="Project name"
-                value={formState.projectName}
-                placeholder="e.g. Vendor onboarding portal"
-                onChange={(projectName) => updateField("projectName", projectName)}
-              />
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium">Preferred data source</span>
-                <select
-                  value={formState.preferredDataSource}
-                  onChange={(event) => updateField("preferredDataSource", event.target.value as DataSourceType)}
-                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {dataSourceOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+            <section className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
+              <div className="space-y-1">
+                <p className={sectionHintClassName}>Project foundation</p>
+                <h4 className="text-sm font-semibold">Context and goals</h4>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-1.5 text-sm">
+                  <span className="font-medium">Project / app name</span>
+                  <input
+                    className={fieldClassName}
+                    placeholder="e.g. Vendor onboarding portal"
+                    value={formState.projectName}
+                    onChange={(event) => updateField("projectName", event.target.value)}
+                  />
+                </label>
+                <label className="space-y-1.5 text-sm">
+                  <span className="font-medium">Preferred data source</span>
+                  <select
+                    className={fieldClassName}
+                    value={formState.preferredDataSource}
+                    onChange={(event) => updateField("preferredDataSource", event.target.value as DataSourceType)}
+                  >
+                    {dataSourceOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium">Business objective</span>
+                <textarea
+                  className={fieldClassName}
+                  rows={4}
+                  value={formState.businessObjective}
+                  onChange={(event) => updateField("businessObjective", event.target.value)}
+                  placeholder="Summarize the business problem, current workflow, and why this app is being proposed."
+                />
               </label>
-            </div>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium">Desired outputs</span>
+                <textarea
+                  className={fieldClassName}
+                  rows={4}
+                  value={formState.desiredOutputs}
+                  onChange={(event) => updateField("desiredOutputs", event.target.value)}
+                  placeholder="List measurable outcomes, must-have capabilities, and what a successful launch should achieve."
+                />
+              </label>
+            </section>
 
-            <FormTextareaField
-              label="Business objective"
-              value={formState.businessObjective}
-              rows={3}
-              placeholder="Describe the business problem and outcome this studio should solve"
-              onChange={(businessObjective) => updateField("businessObjective", businessObjective)}
-            />
-            <FormTextareaField
-              label="Target users and roles"
-              value={formState.targetUsersRoles}
-              rows={3}
-              placeholder="List the users, approvers, and stakeholders that shape the experience"
-              onChange={(targetUsersRoles) => updateField("targetUsersRoles", targetUsersRoles)}
-            />
-            <FormTextareaField
-              label="Requirements"
-              value={formState.requirementsText}
-              rows={5}
-              placeholder="Summarize the workflows, statuses, records, and must-have behaviors"
-              onChange={(requirementsText) => updateField("requirementsText", requirementsText)}
-            />
-            <div className="grid gap-4 lg:grid-cols-2">
-              <FormTextareaField
-                label="Meeting notes"
-                value={formState.meetingNotes}
-                rows={4}
-                placeholder="Capture stakeholder notes, assumptions, and current process pain points"
-                onChange={(meetingNotes) => updateField("meetingNotes", meetingNotes)}
-              />
-              <FormTextareaField
-                label="Integrations and dependencies"
-                value={formState.integrationNeeds}
-                rows={4}
-                placeholder="Note ERP, API, approval, notification, or storage dependencies"
-                onChange={(integrationNeeds) => updateField("integrationNeeds", integrationNeeds)}
-              />
-            </div>
-            <FormTextareaField
-              label="Desired output"
-              value={formState.desiredOutputs}
-              rows={3}
-              placeholder="Describe what a useful scoping output should include"
-              onChange={(desiredOutputs) => updateField("desiredOutputs", desiredOutputs)}
-            />
+            <section className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
+              <div className="space-y-1">
+                <p className={sectionHintClassName}>Users and structure</p>
+                <h4 className="text-sm font-semibold">Roles, actors, and entities</h4>
+              </div>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium">Users / roles</span>
+                <textarea
+                  className={fieldClassName}
+                  rows={4}
+                  value={formState.targetUsersRoles}
+                  onChange={(event) => updateField("targetUsersRoles", event.target.value)}
+                  placeholder="Describe each user type, their responsibilities, and any permission differences."
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium">Requirements and data</span>
+                <textarea
+                  className={fieldClassName}
+                  rows={5}
+                  value={formState.requirementsText}
+                  onChange={(event) => updateField("requirementsText", event.target.value)}
+                  placeholder="Outline the main records, relationships, documents, statuses, and important fields to track."
+                />
+              </label>
+            </section>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
-              <Button type="submit" disabled={isSubmitDisabled}>
-                {isSubmitting ? "Generating output..." : "Generate output"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setFormState(initialFormState);
-                  setResult(null);
-                  setErrorMessage(null);
-                }}
-              >
-                Reset input
+            <section className="space-y-4 rounded-xl border border-border/70 bg-background/40 p-4">
+              <div className="space-y-1">
+                <p className={sectionHintClassName}>Execution model</p>
+                <h4 className="text-sm font-semibold">Processes and constraints</h4>
+              </div>
+              <label className="block space-y-1.5 text-sm">
+                <span className="font-medium">Meeting notes</span>
+                <textarea
+                  className={fieldClassName}
+                  rows={5}
+                  value={formState.meetingNotes}
+                  onChange={(event) => updateField("meetingNotes", event.target.value)}
+                  placeholder="Map the major journeys, approvals, automations, notifications, and exceptions the app should support."
+                />
+              </label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-1.5 text-sm">
+                  <span className="font-medium">Integrations or dependencies</span>
+                  <textarea
+                    className={fieldClassName}
+                    rows={4}
+                    value={formState.integrationNeeds}
+                    onChange={(event) => updateField("integrationNeeds", event.target.value)}
+                    placeholder="ERP, CRM, identity providers, spreadsheets, APIs, or manual handoffs."
+                  />
+                </label>
+                <div className="space-y-1.5 text-sm">
+                  <span className="font-medium">Submission status</span>
+                  {submitError ? (
+                    <StatusMessage message={submitError} tone="error" />
+                  ) : (
+                    <StatusMessage message="Submit to generate structured screens, entities, roles, flows, and rollout recommendations." />
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/80 bg-background/30 px-4 py-3">
+              <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                {isSubmitting ? (
+                  <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+                ) : (
+                  <Sparkles className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+                )}
+                <p>
+                  {isSubmitting
+                    ? "Generating your scope draft from the current inputs."
+                    : "Scope Studio submits directly to the existing API route and renders the latest response below."}
+                </p>
+              </div>
+              <Button type="submit" disabled={isSubmitting || isSubmitDisabled}>
+                {isSubmitting ? "Generating..." : "Generate Scope"}
               </Button>
             </div>
           </form>
@@ -244,6 +301,15 @@ export default function ScopePage() {
             </div>
           ) : null}
         </StudioOutputCard>
+      </div>
+
+      <div className="mt-6">
+        <SectionCard
+          title="Scope results"
+          description="Structured recommendations returned by the Scope API for the latest successful submission."
+        >
+          <ScopeResultsPanel result={scopeResponse} />
+        </SectionCard>
       </div>
     </PageContainer>
   );
