@@ -10,7 +10,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json(parsed.error, { status: 400 });
   }
 
-  const response = createRecommendationMockResponse(parsed.data);
+  const response = createRecommendationMockResponse(parsed.data as import("@/lib/contracts/workspace").RecommendationRequest);
 
   return NextResponse.json(response);
 }

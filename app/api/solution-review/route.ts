@@ -10,7 +10,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json(parsed.error, { status: 400 });
   }
 
-  const response = createSolutionReviewMockResponse(parsed.data);
+  const response = createSolutionReviewMockResponse(parsed.data as import("@/lib/contracts/workspace").SolutionReviewRequest);
 
   return NextResponse.json(response);
 }

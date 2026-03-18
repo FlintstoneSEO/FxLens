@@ -1,4 +1,4 @@
-import { z } from "zod";
+import type { ZodType } from "zod";
 
 type ChatCompletionResponse = {
   choices?: Array<{
@@ -34,7 +34,7 @@ function extractJsonContent(payload: ChatCompletionResponse): string {
 export async function requestStructuredJson<T>(
   systemPrompt: string,
   userPrompt: string,
-  responseSchema: z.ZodType<T>
+  responseSchema: ZodType<T>
 ): Promise<T> {
   const apiKey = getApiKey();
 
