@@ -1,32 +1,244 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
+import { FileCode2, GitBranch, ListChecks, TextSearch } from "lucide-react";
+
 import { PageContainer } from "@/components/layout/page-container";
-import { CodePanel } from "@/components/ui/code-panel";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
-import { SeverityBadge } from "@/components/ui/severity-badge";
 
-const sampleFormula = `Filter(
-  Orders,
-  CustomerId = selectedCustomer.Id &&
-  LookUp(Users, Id = User().Email, Role) = "Manager"
+const analysisUseCases = [
+  {
+    title: "Pasted code",
+    description: "Review Power Fx, TypeScript, SQL, or configuration snippets for correctness, risk, and maintainability.",
+    icon: FileCode2
+  },
+  {
+    title: "Architecture notes",
+    description: "Inspect solution structure, integration decisions, and data flow notes before implementation starts.",
+    icon: GitBranch
+  },
+  {
+    title: "Issue descriptions",
+    description: "Break down defects, unexpected behavior, repro steps, and likely root causes for deeper analysis.",
+    icon: TextSearch
+  },
+  {
+    title: "Requirements text",
+    description: "Evaluate acceptance criteria, edge cases, dependencies, and ambiguity in functional requirements.",
+    icon: ListChecks
+  }
+] as const;
+
+const promptStarters = [
+  "Identify likely logic risks, hidden assumptions, and missing edge cases.",
+  "Highlight performance, delegation, or maintainability concerns.",
+  "Summarize the problem framing and point out any unclear requirements.",
+  "Call out follow-up questions that would improve implementation confidence."
+] as const;
+
+const sampleFormula = `If(
+  varIsManager,
+  Filter(Orders, ManagerId = varCurrentUserId),
+  Filter(Orders, CreatedById = varCurrentUserId)
 )`;
 
+const initialFormState = {
+  mode: "formula_analyzer" as AnalyzeMode,
+  artifactName: "Order review formula",
+  artifactPurpose: "Validate manager-only order review access.",
+  dataSource: "dataverse" as DataSourceType,
+  symptoms: "Repeated lookups and potential delegation warnings when the dataset grows.",
+  inputPayload: sampleFormula,
+  relatedFormulas: "Set(varIsManager, LookUp(Users, Id = User().Email, Role = \"Manager\"))"
+};
+
+function DetailList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <ul className="space-y-1 text-sm text-muted-foreground">
+        {items.map((item) => (
+          <li key={item} className="list-inside list-disc">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function AnalyzePage() {
+  const [formState, setFormState] = useState(initialFormState);
+  const [response, setResponse] = useState<AnalyzeResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isSubmitDisabled = useMemo(() => {
+    return (
+      isSubmitting ||
+      formState.artifactName.trim().length === 0 ||
+      formState.artifactPurpose.trim().length === 0 ||
+      formState.symptoms.trim().length === 0
+    );
+  }, [formState.artifactName, formState.artifactPurpose, formState.symptoms, isSubmitting]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const apiResponse = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          ...formState,
+          relatedFormulas: formState.relatedFormulas.trim() || undefined
+        })
+      });
+
+      const payload = (await apiResponse.json()) as AnalyzeResponse | { error?: { message?: string } };
+
+      if (!apiResponse.ok) {
+        const message = "error" in payload ? payload.error?.message : undefined;
+        setResponse(null);
+        setErrorMessage(message ?? "Analyze request failed.");
+        return;
+      }
+
+      setResponse(payload as AnalyzeResponse);
+    } catch {
+      setResponse(null);
+      setErrorMessage("Unable to submit analyze request right now.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Analyze Studio"
-        description="Inspect Power Fx formulas for delegation issues, repeated lookups, and data loading inefficiencies."
+        description="Inspect code, notes, issue reports, or requirements in a focused workspace before turning findings into build-ready changes."
       />
-      <SectionCard
-        title="Formula Inspection"
-        description="Sample analysis panel placeholder for upcoming analyzer workflows."
-      >
-        <div className="mb-4 flex items-center gap-2">
-          <SeverityBadge severity="high" />
-          <p className="text-sm text-muted-foreground">Potential repeated LookUp on Users data source.</p>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
+        <SectionCard
+          title="Analysis Workspace"
+          description="Capture the request context and paste the material you want reviewed. Submission wiring will be added in a future phase."
+        >
+          <form className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Analysis focus</span>
+                <select
+                  defaultValue="code-review"
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="code-review">Code review</option>
+                  <option value="architecture-review">Architecture review</option>
+                  <option value="issue-triage">Issue triage</option>
+                  <option value="requirements-review">Requirements review</option>
+                  <option value="general-analysis">General analysis</option>
+                </select>
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Optional title</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Order screen delegation investigation"
+                  className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+            </div>
+
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">What do you want analyzed?</span>
+              <textarea
+                rows={16}
+                placeholder="Paste code, architecture notes, issue details, or requirements here. Include relevant constraints, expected behavior, and any known pain points."
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Context and constraints</span>
+                <textarea
+                  rows={7}
+                  placeholder="Add app context, target users, impacted screens, non-functional requirements, or constraints the analysis should respect."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Questions to answer</span>
+                <textarea
+                  rows={7}
+                  placeholder="List the questions you want the analysis to cover, such as risk areas, edge cases, performance concerns, or recommendations."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
+              <Button type="button">Analyze Input</Button>
+              <Button type="reset" variant="secondary">
+                Clear Workspace
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Input is local-only for now. API submission and saved analysis runs are not wired yet.
+              </p>
+            </div>
+          </form>
+        </SectionCard>
+
+        <div className="space-y-6">
+          <SectionCard
+            title="Common analysis inputs"
+            description="Start with whichever artifact best represents the problem you need to understand."
+          >
+            <div className="space-y-3">
+              {analysisUseCases.map(({ title, description, icon: Icon }) => (
+                <div
+                  key={title}
+                  className="flex gap-3 rounded-xl border border-border/70 bg-background/70 p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Prompt starters"
+            description="Useful directions to include when you want focused findings instead of a generic review."
+          >
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              {promptStarters.map((starter) => (
+                <li key={starter} className="rounded-lg border border-dashed border-border bg-background/60 px-4 py-3">
+                  {starter}
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
         </div>
-        <CodePanel title="Sample Formula" language="Power Fx" code={sampleFormula} />
-      </SectionCard>
+      </div>
     </PageContainer>
   );
 }
