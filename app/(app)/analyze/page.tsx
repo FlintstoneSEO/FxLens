@@ -56,7 +56,7 @@ function getValidationMessage(error: unknown): string {
     return (error as ValidationErrorPayload).error.message;
   }
 
-  return "Unable to submit the analyze request right now. Please try again.";
+  return "Unable to run Analyze Studio right now. Please try again.";
 }
 
 function FormSection({
@@ -314,7 +314,7 @@ export default function AnalyzePage() {
                 </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="secondary" onClick={resetWorkspace} disabled={isSubmitting}>
-                    Clear workspace
+                    Clear
                   </Button>
                   <Button type="submit" disabled={isSubmitDisabled} className="min-w-40">
                     {isSubmitting ? "Analyzing..." : "Analyze artifact"}

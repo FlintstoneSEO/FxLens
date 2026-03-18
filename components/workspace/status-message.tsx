@@ -21,7 +21,7 @@ export function StatusMessage({ message, tone = "info", label }: StatusMessagePr
   return (
     <div
       className={cn(
-        "rounded-xl border p-4 text-sm",
+        "rounded-2xl border p-4 text-sm",
         tone === "error"
           ? "border-rose-300/60 bg-rose-50 text-rose-700"
           : tone === "loading"
@@ -35,7 +35,7 @@ export function StatusMessage({ message, tone = "info", label }: StatusMessagePr
         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", tone === "loading" ? "animate-spin" : undefined)} aria-hidden="true" />
         <div>
           {label ? <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em]">{label}</p> : null}
-          <p>{message}</p>
+          <p className="leading-6">{message}</p>
         </div>
       </div>
     </div>

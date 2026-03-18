@@ -15,10 +15,19 @@ import {
 } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { BuildOutput } from "@/components/workspace/build-output";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
+import { BuildOutput } from "@/components/workspace/build-output";
+import { StatusMessage } from "@/components/workspace/status-message";
+import {
+  STUDIO_ERROR_LABEL,
+  STUDIO_LOADING_MESSAGE,
+  STUDIO_RUN_LABEL,
+  STUDIO_RUNNING_LABEL,
+  StudioInputCard,
+  StudioOutputCard
+} from "@/components/workspace/studio-shell";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 import { cn } from "@/lib/utils";
@@ -176,6 +185,14 @@ export default function BuildPage() {
       isSubmitting,
     ],
   );
+
+  const generatedAtLabel = useMemo(() => {
+    if (!response?.generatedAt) {
+      return null;
+    }
+
+    return `Last run ${new Date(response.generatedAt).toLocaleString()}`;
+  }, [response]);
 
   const buildRequest: BuildRequest = {
     mode: selectedArtifact.mode,
@@ -344,7 +361,7 @@ export default function BuildPage() {
 
                     return (
                       <button
-                        key={option.id}
+                        key={option}
                         type="button"
                         onClick={() => updateField("buildIntent", option.id)}
                         disabled={isSubmitting}
@@ -377,7 +394,7 @@ export default function BuildPage() {
                     );
                   })}
                 </div>
-              </div>
+              </SectionCard>
 
               <div className="space-y-3">
                 <div>
@@ -393,7 +410,7 @@ export default function BuildPage() {
 
                     return (
                       <button
-                        key={option.id}
+                        key={option}
                         type="button"
                         onClick={() => updateField("artifactType", option.id)}
                         disabled={isSubmitting}
@@ -458,7 +475,6 @@ export default function BuildPage() {
                 </label>
               </div>
             </div>
-          </SectionCard>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <SectionCard
