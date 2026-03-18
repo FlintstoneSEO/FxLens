@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Blocks, FileCode2, Layers3, Rocket, Sparkles, Wand2 } from "lucide-react";
+import { Blocks, FileCode2, Layers3, LoaderCircle, Rocket, Sparkles, Wand2 } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
+import { BuildOutput } from "@/components/workspace/build-output";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
+import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
 import { cn } from "@/lib/utils";
 
 const intentOptions = [
@@ -35,19 +37,22 @@ const artifactOptions = [
     id: "screen-blueprint",
     label: "Screen blueprint",
     description: "Layout, controls, states, and interaction guidance.",
-    icon: Blocks
+    icon: Blocks,
+    mode: "screen_builder"
   },
   {
     id: "component-set",
     label: "Reusable component set",
     description: "Patterns for cards, forms, lists, and high-value UI modules.",
-    icon: Layers3
+    icon: Layers3,
+    mode: "component_builder"
   },
   {
     id: "power-fx-starter",
     label: "Power Fx starter",
     description: "Starter formulas and implementation notes for the selected build.",
-    icon: FileCode2
+    icon: FileCode2,
+    mode: "formula_builder"
   }
 ] as const;
 
@@ -89,6 +94,10 @@ export default function BuildPage() {
   const [successMetric, setSuccessMetric] = useState(
     "A maker should understand the page structure, primary controls, and formula starting points in under 10 minutes."
   );
+  const [submittedRequest, setSubmittedRequest] = useState<BuildRequest | null>(null);
+  const [response, setResponse] = useState<BuildResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const selectedIntent = useMemo(
     () => intentOptions.find((option) => option.id === buildIntent) ?? intentOptions[0],
@@ -98,6 +107,14 @@ export default function BuildPage() {
     () => artifactOptions.find((option) => option.id === artifactType) ?? artifactOptions[0],
     [artifactType]
   );
+  const isSubmitDisabled = useMemo(
+    () =>
+      isSubmitting ||
+      workspaceTitle.trim().length === 0 ||
+      technicalNotes.trim().length === 0 ||
+      successMetric.trim().length === 0,
+    [isSubmitting, successMetric, technicalNotes, workspaceTitle]
+  );
 
   const toggleSelection = (value: string, selected: string[], setSelected: (next: string[]) => void) => {
     setSelected(
@@ -105,19 +122,81 @@ export default function BuildPage() {
     );
   };
 
+  const buildRequest: BuildRequest = {
+    mode: selectedArtifact.mode,
+    promptTitle: workspaceTitle.trim(),
+    contextSummary: technicalNotes.trim(),
+    inputPayload: {
+      build_intent: selectedIntent.label,
+      target_artifact: selectedArtifact.label,
+      success_signal: successMetric.trim(),
+      constraints: selectedConstraints.join(", ") || "None selected",
+      output_preferences: selectedOutputs.join(", ") || "None selected"
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const apiResponse = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(buildRequest)
+      });
+
+      const payload = (await apiResponse.json()) as BuildResponse | { error?: { message?: string } };
+
+      if (!apiResponse.ok) {
+        setResponse(null);
+        setSubmittedRequest(buildRequest);
+        setErrorMessage(
+          "error" in payload && payload.error?.message
+            ? payload.error.message
+            : "We couldn't generate the build output right now. Please review your inputs and try again."
+        );
+        return;
+      }
+
+      setSubmittedRequest(buildRequest);
+      setResponse(payload as BuildResponse);
+    } catch {
+      setResponse(null);
+      setSubmittedRequest(buildRequest);
+      setErrorMessage("We couldn't reach the build service right now. Please try again in a moment.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader
         title="Build Studio"
-        description="Shape implementation-ready build inputs with focused intent, artifact selection, technical notes, constraints, and output guidance before generation is wired in."
-        actions={<Button>Prepare Build Brief</Button>}
+        description="Shape implementation-ready build inputs, submit them to generation, and review the resulting build package in a structured output workspace."
+        actions={
+          <Button type="submit" form="build-studio-form" disabled={isSubmitDisabled}>
+            {isSubmitting ? (
+              <span className="inline-flex items-center gap-2">
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                Generating...
+              </span>
+            ) : (
+              "Generate Build Output"
+            )}
+          </Button>
+        }
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.95fr)]">
-        <div className="space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,1fr)]">
+        <form id="build-studio-form" className="space-y-6" onSubmit={handleSubmit}>
           <SectionCard
-            title="Build workspace"
-            description="Capture the build direction clearly so the next generation step starts from a usable, implementation-oriented brief."
+            title="Build inputs"
+            description="Capture the build direction clearly so the generation step starts from a usable, implementation-oriented brief."
           >
             <div className="space-y-6">
               <label className="block space-y-1.5">
@@ -307,12 +386,33 @@ export default function BuildPage() {
               </div>
             </SectionCard>
           </div>
-        </div>
+
+          <SectionCard
+            title="Submit build request"
+            description="When you generate, the current input state is packaged and sent to the existing Build API route."
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <Button type="submit" disabled={isSubmitDisabled}>
+                {isSubmitting ? (
+                  <span className="inline-flex items-center gap-2">
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                    Generating build package...
+                  </span>
+                ) : (
+                  "Generate Build Output"
+                )}
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                The output panel updates after each successful run and keeps the latest generated package in local state.
+              </p>
+            </div>
+          </SectionCard>
+        </form>
 
         <div className="space-y-6">
           <SectionCard
-            title="Studio snapshot"
-            description="A live summary of the build setup that will guide the generated build brief."
+            title="Output workspace"
+            description="Review the submitted brief and generated response in clearly separated, structured output sections."
           >
             <div className="space-y-5">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -332,50 +432,14 @@ export default function BuildPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/70 bg-background p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">What the builder should know</p>
-                <p className="mt-2 text-sm text-muted-foreground">{technicalNotes}</p>
-              </div>
-
-              <div className="rounded-xl border border-border/70 bg-background p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Selected guardrails</p>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                    {selectedConstraints.length} active
-                  </span>
+              {errorMessage ? (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+                  <p className="font-medium">Build generation failed</p>
+                  <p className="mt-1 text-destructive/90">{errorMessage}</p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedConstraints.map((item) => (
-                    <span key={item} className="rounded-full border border-border bg-muted/60 px-3 py-1 text-xs text-foreground">
-                      {item}
-                    </span>
-                  ))}
-                </div>
-              </div>
+              ) : null}
 
-              <div className="rounded-xl border border-border/70 bg-background p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Planned output</p>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-                    {selectedOutputs.length} included
-                  </span>
-                </div>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  {selectedOutputs.map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="rounded-xl border border-dashed border-border/80 bg-muted/30 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Readiness note</p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  This workspace is ready for API wiring later. For now, it gives teams a clear, studio-style place to shape build inputs before generation.
-                </p>
-              </div>
+              <BuildOutput request={submittedRequest ?? buildRequest} response={response ?? undefined} />
             </div>
           </SectionCard>
         </div>
