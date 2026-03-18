@@ -1,3 +1,6 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
 import { ClipboardList, Flag, ShieldAlert, Users } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
