@@ -9,11 +9,13 @@ export async function POST(request: Request): Promise<Response> {
     return createValidationErrorResponse(parsed.error);
   }
 
+  const requestData = parsed.data as import("@/lib/contracts/workspace").BuildRequest;
+
   try {
-    const response = await generateBuildWithOpenAI(parsed.data);
+    const response = await generateBuildWithOpenAI(requestData);
     return Response.json(response);
   } catch {
-    const fallback = createBuildMockResponse(parsed.data);
+    const fallback = createBuildMockResponse(requestData);
     return Response.json(fallback);
   }
 }
