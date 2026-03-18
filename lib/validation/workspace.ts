@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import type {
@@ -133,24 +134,56 @@ type ParseValidationFailure = {
   error: ValidationErrorPayload;
 };
 
+function createValidationErrorPayload(message: string, issues: ValidationIssue[]): ValidationErrorPayload {
+  return {
+    error: {
+      code: "INVALID_REQUEST_BODY",
+      message,
+      issues
+    }
+  };
+}
+
+export function createValidationErrorResponse(error: ValidationErrorPayload): Response {
+  return NextResponse.json(error, { status: 400 });
+}
+
 export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
   request: Request,
   schema: TSchema
 ): Promise<ParseValidationSuccess<z.infer<TSchema>> | ParseValidationFailure> {
+  const contentType = request.headers.get("content-type");
+
+  if (contentType && !contentType.toLowerCase().includes("application/json")) {
+    return {
+      success: false,
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Content-Type must be application/json." }
+      ])
+    };
+  }
+
+  const requestBody = await request.text();
+
+  if (!requestBody.trim()) {
+    return {
+      success: false,
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Request body is required." }
+      ])
+    };
+  }
+
   let payload: unknown;
 
   try {
-    payload = await request.json();
+    payload = JSON.parse(requestBody);
   } catch {
     return {
       success: false,
-      error: {
-        error: {
-          code: "INVALID_REQUEST_BODY",
-          message: "Request body must be valid JSON.",
-          issues: [{ path: "$", message: "Malformed JSON payload." }]
-        }
-      }
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Malformed JSON payload." }
+      ])
     };
   }
 
@@ -159,16 +192,13 @@ export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
   if (!parsed.success) {
     return {
       success: false,
-      error: {
-        error: {
-          code: "INVALID_REQUEST_BODY",
-          message: "Request body validation failed.",
-          issues: parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
-            path: issue.path.length > 0 ? issue.path.join(".") : "$",
-            message: issue.message
-          }))
-        }
-      }
+      error: createValidationErrorPayload(
+        "Request body validation failed.",
+        parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
+          path: issue.path.length > 0 ? issue.path.join(".") : "$",
+          message: issue.message
+        }))
+      )
     };
   }
 
