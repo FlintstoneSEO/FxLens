@@ -1,48 +1,18 @@
 "use client";
 
 import { type FormEvent, useMemo, useState } from "react";
-import { FileCode2, GitBranch, ListChecks, TextSearch } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, SearchCode } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
+import { StatusMessage } from "@/components/workspace/status-message";
 import { AnalyzeResults } from "@/components/workspace/analyze-results";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
-import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { AnalyzeMode, AnalyzeRequest, AnalyzeResponse, DataSourceType } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
-
-const analysisUseCases = [
-  {
-    title: "Pasted code",
-    description: "Review Power Fx, TypeScript, SQL, or configuration snippets for correctness, risk, and maintainability.",
-    icon: FileCode2
-  },
-  {
-    title: "Architecture notes",
-    description: "Inspect solution structure, integration decisions, and data flow notes before implementation starts.",
-    icon: GitBranch
-  },
-  {
-    title: "Issue descriptions",
-    description: "Break down defects, unexpected behavior, repro steps, and likely root causes for deeper analysis.",
-    icon: TextSearch
-  },
-  {
-    title: "Requirements text",
-    description: "Evaluate acceptance criteria, edge cases, dependencies, and ambiguity in functional requirements.",
-    icon: ListChecks
-  }
-] as const;
-
-const promptStarters = [
-  "Identify likely logic risks, hidden assumptions, and missing edge cases.",
-  "Highlight performance, delegation, or maintainability concerns.",
-  "Summarize the problem framing and point out any unclear requirements.",
-  "Call out follow-up questions that would improve implementation confidence."
-] as const;
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
   { label: "Dataverse", value: "dataverse" },
@@ -59,6 +29,9 @@ const modeOptions: Array<{ label: string; value: AnalyzeMode }> = [
   { label: "Component analyzer", value: "component_analyzer" },
   { label: "Performance advisor", value: "performance_advisor" }
 ];
+
+const fieldClassName =
+  "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-70";
 
 const initialFormState: AnalyzeRequest = {
   mode: "formula_analyzer",
@@ -86,9 +59,35 @@ function getValidationMessage(error: unknown): string {
   return "Unable to submit the analyze request right now. Please try again.";
 }
 
+function FormSection({
+  eyebrow,
+  title,
+  description,
+  children
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-border/70 bg-background/40 p-5">
+      <div className="space-y-1">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{eyebrow}</p>
+        <div>
+          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function AnalyzePage() {
   const [formState, setFormState] = useState<AnalyzeRequest>(initialFormState);
   const [response, setResponse] = useState<AnalyzeResponse | null>(null);
+  const [submittedRequest, setSubmittedRequest] = useState<AnalyzeRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -102,16 +101,35 @@ export default function AnalyzePage() {
     [formState, isSubmitting]
   );
 
+  const generatedAtLabel = useMemo(() => {
+    if (!response?.generatedAt) {
+      return null;
+    }
+
+    const parsedDate = new Date(response.generatedAt);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "Generated just now";
+    }
+
+    return `Generated ${parsedDate.toLocaleString()}`;
+  }, [response]);
+
   const updateField = <TKey extends keyof AnalyzeRequest>(field: TKey, value: AnalyzeRequest[TKey]) => {
     setFormState((current) => ({
       ...current,
       [field]: value
     }));
+
+    if (errorMessage) {
+      setErrorMessage(null);
+    }
   };
 
   const resetWorkspace = () => {
     setFormState(initialFormState);
     setResponse(null);
+    setSubmittedRequest(null);
     setErrorMessage(null);
   };
 
@@ -120,14 +138,16 @@ export default function AnalyzePage() {
     setIsSubmitting(true);
     setErrorMessage(null);
 
+    const requestPayload: AnalyzeRequest = {
+      ...formState,
+      relatedFormulas: formState.relatedFormulas?.trim() ? formState.relatedFormulas.trim() : undefined
+    };
+
     try {
       const apiResponse = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...formState,
-          relatedFormulas: formState.relatedFormulas?.trim() ? formState.relatedFormulas : undefined
-        })
+        body: JSON.stringify(requestPayload)
       });
 
       const payload = (await apiResponse.json()) as AnalyzeResponse | ValidationErrorPayload;
@@ -136,9 +156,11 @@ export default function AnalyzePage() {
         throw payload;
       }
 
+      setSubmittedRequest(requestPayload);
       setResponse(payload as AnalyzeResponse);
     } catch (error) {
       setResponse(null);
+      setSubmittedRequest(null);
       setErrorMessage(getValidationMessage(error));
     } finally {
       setIsSubmitting(false);
@@ -149,23 +171,38 @@ export default function AnalyzePage() {
     <PageContainer>
       <PageHeader
         title="Analyze Studio"
-        description="Inspect code, notes, issue reports, or requirements in a focused workspace and return structured findings, risks, and recommendations."
+        description="Submit an artifact, route it through the existing Analyze API, and review structured findings, risks, and recommendations in one workspace."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.95fr)]">
-        <div className="space-y-6">
-          <SectionCard
-            title="Analysis workspace"
-            description="Capture the artifact context, the material to review, and the issues you want the analyzer to focus on."
-          >
-            <form className="space-y-6" onSubmit={handleSubmit}>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.02fr)_minmax(0,0.98fr)]">
+        <StudioInputCard
+          title="Analysis brief"
+          description="Capture what should be reviewed, the suspected issues, and the supporting context. Every field remains editable between runs."
+          accent="input"
+        >
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <SearchCode className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+                <p>
+                  Use Analyze Studio to move from artifact input to a structured review. The latest successful API response stays visible in the results panel while you refine the next submission.
+                </p>
+              </div>
+            </div>
+
+            <FormSection
+              eyebrow="Analysis setup"
+              title="Focus and artifact details"
+              description="Set the analyzer mode, identify the artifact, and explain the intended behavior before submitting."
+            >
               <div className="grid gap-4 md:grid-cols-2">
                 <label className="block space-y-1.5">
                   <span className="text-sm font-medium">Analysis focus</span>
                   <select
                     value={formState.mode}
                     onChange={(event) => updateField("mode", event.target.value as AnalyzeMode)}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                    className={fieldClassName}
+                    disabled={isSubmitting}
                   >
                     {modeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -180,7 +217,8 @@ export default function AnalyzePage() {
                   <select
                     value={formState.dataSource}
                     onChange={(event) => updateField("dataSource", event.target.value as DataSourceType)}
-                    className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                    className={fieldClassName}
+                    disabled={isSubmitting}
                   >
                     {dataSourceOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -197,21 +235,30 @@ export default function AnalyzePage() {
                   value={formState.artifactName}
                   placeholder="e.g. Order review formula"
                   onChange={(value) => updateField("artifactName", value)}
+                  disabled={isSubmitting}
                 />
                 <FormInputField
                   label="Artifact purpose"
                   value={formState.artifactPurpose}
                   placeholder="Describe the business goal or expected behavior"
                   onChange={(value) => updateField("artifactPurpose", value)}
+                  disabled={isSubmitting}
                 />
               </div>
+            </FormSection>
 
+            <FormSection
+              eyebrow="Analysis input"
+              title="Observed issues and material to review"
+              description="Describe the symptoms clearly, then provide the code, notes, or requirements text the analyzer should inspect."
+            >
               <FormTextareaField
                 label="Symptoms or concerns"
                 value={formState.symptoms}
                 rows={4}
                 placeholder="Describe the issues you are seeing, suspected risks, or the questions this analysis should answer."
                 onChange={(value) => updateField("symptoms", value)}
+                disabled={isSubmitting}
               />
 
               <FormTextareaField
@@ -220,6 +267,7 @@ export default function AnalyzePage() {
                 rows={14}
                 placeholder="Paste code, architecture notes, issue details, or requirements here. Include relevant constraints, expected behavior, and known pain points."
                 onChange={(value) => updateField("inputPayload", value)}
+                disabled={isSubmitting}
               />
 
               <FormTextareaField
@@ -228,73 +276,66 @@ export default function AnalyzePage() {
                 rows={5}
                 placeholder="Optional: add related formulas, helper logic, or nearby implementation details that affect the analysis."
                 onChange={(value) => updateField("relatedFormulas", value)}
+                disabled={isSubmitting}
+              />
+            </FormSection>
+
+            <div className="space-y-3 rounded-2xl border border-border/80 bg-background/40 p-4">
+              <StatusMessage
+                tone={errorMessage ? "error" : isSubmitting ? "loading" : response ? "success" : "info"}
+                label={errorMessage ? "Submission status" : isSubmitting ? "Analyzing" : response ? "Latest result" : "Ready"}
+                message={
+                  errorMessage
+                    ? errorMessage
+                    : isSubmitting
+                      ? "Submitting the current artifact to /api/analyze and waiting for structured findings, risks, and recommendations."
+                      : response
+                        ? "The latest successful response is loaded in the results panel. Update the brief and submit again whenever you need a new pass."
+                        : "Complete the brief and submit to generate a structured review for the current artifact."
+                }
               />
 
-              {errorMessage ? <StatusMessage message={errorMessage} tone="error" label="Analyze failed" /> : null}
-
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-border/80 bg-background/30 px-4 py-3">
-                <p className="text-sm text-muted-foreground">
-                  Submit the current artifact to generate structured findings, issues, and recommendations.
-                </p>
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/70 bg-card/70 px-4 py-3">
+                <div className="flex items-start gap-3 text-sm text-muted-foreground">
+                  {isSubmitting ? (
+                    <Loader2 className="mt-0.5 h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+                  ) : response ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-600" aria-hidden="true" />
+                  ) : (
+                    <AlertCircle className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
+                  )}
+                  <p>
+                    {isSubmitting
+                      ? "We are validating the request body and generating the latest analysis response."
+                      : response
+                        ? "Results remain visible so you can compare findings, refine context, and rerun without losing the previous review flow."
+                        : "Provide enough context for the analyzer to separate findings, risks, and recommended next steps."}
+                  </p>
+                </div>
                 <div className="flex gap-2">
                   <Button type="button" variant="secondary" onClick={resetWorkspace} disabled={isSubmitting}>
                     Clear workspace
                   </Button>
-                  <Button type="submit" disabled={isSubmitDisabled}>
-                    {isSubmitting ? "Analyzing..." : "Analyze input"}
+                  <Button type="submit" disabled={isSubmitDisabled} className="min-w-40">
+                    {isSubmitting ? "Analyzing..." : "Analyze artifact"}
                   </Button>
                 </div>
               </div>
-            </form>
-          </SectionCard>
-
-          <SectionCard
-            title="Analysis results"
-            description="Structured output is stored in the workspace so you can review findings, risks, and recommendations in one place."
-          >
-            {isSubmitting ? (
-              <StatusMessage
-                label="Analysis in progress"
-                message="Review is running now. Results will appear here as soon as the analyzer responds."
-              />
-            ) : null}
-            <AnalyzeResults result={response} />
-          </SectionCard>
-        </div>
-
-        <div className="space-y-6">
-          <SectionCard
-            title="Common analysis inputs"
-            description="Start with whichever artifact best represents the problem you need to understand."
-          >
-            <div className="space-y-3">
-              {analysisUseCases.map(({ title, description, icon: Icon }) => (
-                <div
-                  key={title}
-                  className="flex gap-3 rounded-xl border border-border/70 bg-background/70 p-4"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold">{title}</h3>
-                    <p className="text-sm text-muted-foreground">{description}</p>
-                  </div>
-                </div>
-              ))}
-              {response ? (
-                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance and maintainability notes</p>
-                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                    {[...response.performanceNotes, ...response.maintainabilityNotes].map((item) => (
-                      <li key={item} className="list-inside list-disc">{item}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : null}
             </div>
-          </SectionCard>
-        </div>
+          </form>
+        </StudioInputCard>
+
+        <StudioOutputCard
+          title="Structured output"
+          description="Review the submitted context, returned severity, and structured findings in clearly separated sections aligned with the other studios."
+          errorMessage={errorMessage}
+          emptyMessage="Submit an analysis brief to generate a structured review for this studio."
+          accent="output"
+          generatedAtLabel={generatedAtLabel}
+          isLoading={isSubmitting}
+        >
+          <AnalyzeResults result={response} request={submittedRequest} isLoading={isSubmitting} />
+        </StudioOutputCard>
       </div>
     </PageContainer>
   );
