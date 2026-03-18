@@ -5,7 +5,6 @@ import { useMemo, useState, type FormEvent } from "react";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
 import {
@@ -16,7 +15,7 @@ import {
   SuggestedComponentCard,
   SuggestedFormulaCard
 } from "@/components/workspace/result-cards";
-import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, RecommendationRequest, RecommendationResponse } from "@/lib/contracts/workspace";
 
 const dataSourceOptions: readonly DataSourceType[] = ["dataverse", "sql", "sharepoint", "api", "mixed", "other"];
@@ -29,6 +28,8 @@ const initialFormState: RecommendationRequest = {
     "Current solution uses Dataverse for core entities, SQL for reporting, and Power Automate for approval routing.",
   symptoms: "Slow startup, repeated lookup logic, and uncertainty about where backend processing should live."
 };
+
+const sharedErrorMessage = "Something went wrong while preparing output. Please try again.";
 
 export default function RecommendationsPage() {
   const [formState, setFormState] = useState<RecommendationRequest>(initialFormState);
@@ -61,19 +62,18 @@ export default function RecommendationsPage() {
         body: JSON.stringify(formState)
       });
 
-      if (!response.ok) {
-        const payload = (await response.json()) as { error?: { message?: string } };
+      const payload = (await response.json()) as RecommendationResponse | { error?: { message?: string } };
 
+      if (!response.ok) {
         setResult(null);
-        setErrorMessage(payload.error?.message ?? "Unable to generate recommendations right now.");
+        setErrorMessage(("error" in payload ? payload.error?.message : undefined) ?? sharedErrorMessage);
         return;
       }
 
-      const payload = (await response.json()) as RecommendationResponse;
-      setResult(payload);
+      setResult(payload as RecommendationResponse);
     } catch {
       setResult(null);
-      setErrorMessage("Unable to reach the recommendation service. Please try again.");
+      setErrorMessage(sharedErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -82,14 +82,14 @@ export default function RecommendationsPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="Recommendations"
-        description="Submit architecture context and receive implementation, performance, backend, SQL, component, and formula guidance from the existing recommendation flow."
+        title="Recommendations Studio"
+        description="Submit the architecture context, keep the experience aligned with the other studios, and generate a polished recommendation output."
       />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
-        <SectionCard
-          title="Recommendation Inputs"
-          description="Provide the scenario details used to call the current recommendation route."
+        <StudioInputCard
+          title="Input"
+          description="Provide the scenario details, architecture notes, and observed symptoms that should drive the recommendation pass."
           className="h-fit"
         >
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -102,7 +102,7 @@ export default function RecommendationsPage() {
             />
 
             <label className="block space-y-1.5">
-              <span className="text-sm font-medium">Data Source Mix</span>
+              <span className="text-sm font-medium">Data source mix</span>
               <select
                 value={formState.dataSourceMix}
                 onChange={(event) =>
@@ -122,7 +122,7 @@ export default function RecommendationsPage() {
             </label>
 
             <FormInputField
-              label="Screen Count"
+              label="Screen count"
               type="number"
               value={String(formState.screenCount)}
               placeholder="0"
@@ -135,7 +135,7 @@ export default function RecommendationsPage() {
             />
 
             <FormTextareaField
-              label="Architecture Notes"
+              label="Architecture notes"
               value={formState.architectureNotes}
               rows={5}
               placeholder="Share current architecture constraints, backend choices, and integration notes"
@@ -150,94 +150,81 @@ export default function RecommendationsPage() {
               onChange={(symptoms) => setFormState((current) => ({ ...current, symptoms }))}
             />
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
               <Button type="submit" disabled={isSubmitDisabled}>
-                {isSubmitting ? "Generating..." : "Generate Recommendations"}
+                {isSubmitting ? "Generating output..." : "Generate output"}
               </Button>
-              {isSubmitting ? <p className="text-sm text-muted-foreground">Submitting to /api/recommend...</p> : null}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setFormState(initialFormState);
+                  setResult(null);
+                  setErrorMessage(null);
+                }}
+              >
+                Reset input
+              </Button>
             </div>
           </form>
-        </SectionCard>
+        </StudioInputCard>
 
-        <div className="space-y-6">
-          {errorMessage ? <StatusMessage message={errorMessage} tone="error" /> : null}
-
-          {!result && !errorMessage ? (
-            <StatusMessage message="Submit the form to load recommendation output from the current API route." />
-          ) : null}
-
+        <StudioOutputCard
+          title="Output"
+          description="Review the current recommendation response, supporting artifacts, and implementation guidance in one consistent output space."
+          errorMessage={errorMessage}
+          emptyMessage="Submit the input to generate recommendation output for this studio."
+        >
           {result ? (
-            <>
-              <SectionCard
-                title="Response Summary"
-                description={`Stored recommendation response from ${new Date(result.generatedAt).toLocaleString()}.`}
-              >
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recommendations</p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight">{result.recommendations.length}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance</p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight">{result.performanceRecommendations.length}</p>
-                  </div>
-                  <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Backend</p>
-                    <p className="mt-2 text-2xl font-semibold tracking-tight">{result.backendRecommendations.length}</p>
-                  </div>
+            <div className="space-y-6">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Recommendations</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">{result.recommendations.length}</p>
                 </div>
-              </SectionCard>
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">{result.performanceRecommendations.length}</p>
+                </div>
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Backend</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-tight">{result.backendRecommendations.length}</p>
+                </div>
+              </div>
 
-              <SectionCard title="Top Recommendations">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.recommendations.map((recommendation) => (
-                    <RecommendationCard key={recommendation.id} recommendation={recommendation} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Performance Recommendations">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.performanceRecommendations.map((recommendation) => (
-                    <PerformanceRecommendationCard key={recommendation.id} recommendation={recommendation} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Backend Recommendations">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.backendRecommendations.map((recommendation) => (
-                    <BackendRecommendationCard key={recommendation.id} recommendation={recommendation} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Suggested SQL Artifacts">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.sqlArtifacts.map((artifact) => (
-                    <SqlArtifactCard key={artifact.id} artifact={artifact} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Suggested Components">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.suggestedComponents.map((component) => (
-                    <SuggestedComponentCard key={component.id} component={component} />
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Suggested Formulas">
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {result.suggestedFormulas.map((formula) => (
-                    <SuggestedFormulaCard key={formula.id} formula={formula} />
-                  ))}
-                </div>
-              </SectionCard>
-            </>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.recommendations.map((recommendation) => (
+                  <RecommendationCard key={recommendation.id} recommendation={recommendation} />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.performanceRecommendations.map((recommendation) => (
+                  <PerformanceRecommendationCard key={recommendation.id} recommendation={recommendation} />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.backendRecommendations.map((recommendation) => (
+                  <BackendRecommendationCard key={recommendation.id} recommendation={recommendation} />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.sqlArtifacts.map((artifact) => (
+                  <SqlArtifactCard key={artifact.id} artifact={artifact} />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.suggestedComponents.map((component) => (
+                  <SuggestedComponentCard key={component.id} component={component} />
+                ))}
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {result.suggestedFormulas.map((formula) => (
+                  <SuggestedFormulaCard key={formula.id} formula={formula} />
+                ))}
+              </div>
+            </div>
           ) : null}
-        </div>
+        </StudioOutputCard>
       </div>
     </PageContainer>
   );
