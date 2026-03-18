@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { FileCode2, GitBranch, ListChecks, TextSearch } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -91,7 +91,6 @@ export default function AnalyzePage() {
   const [response, setResponse] = useState<AnalyzeResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isSubmitDisabled = useMemo(
     () =>
@@ -99,9 +98,9 @@ export default function AnalyzePage() {
       formState.artifactName.trim().length === 0 ||
       formState.artifactPurpose.trim().length === 0 ||
       formState.symptoms.trim().length === 0 ||
-      formState.inputPayload.trim().length === 0
-    );
-  }, [formState, isSubmitting]);
+      formState.inputPayload.trim().length === 0,
+    [formState, isSubmitting]
+  );
 
   const updateField = <TKey extends keyof AnalyzeRequest>(field: TKey, value: AnalyzeRequest[TKey]) => {
     setFormState((current) => ({
@@ -116,17 +115,13 @@ export default function AnalyzePage() {
     setErrorMessage(null);
   };
 
-  const updateField = <TKey extends keyof AnalyzeRequest>(field: TKey, value: AnalyzeRequest[TKey]) => {
-    setFormState((current) => ({ ...current, [field]: value }));
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/api/analyze", {
+      const apiResponse = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -286,18 +281,20 @@ export default function AnalyzePage() {
                     <p className="text-sm text-muted-foreground">{description}</p>
                   </div>
                 </div>
-              </div>
-              <div className="rounded-xl border border-border/70 bg-background/60 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance and maintainability notes</p>
-                <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                  {[...result.performanceNotes, ...result.maintainabilityNotes].map((item) => (
-                    <li key={item} className="list-inside list-disc">{item}</li>
-                  ))}
-                </ul>
-              </div>
+              ))}
+              {response ? (
+                <div className="rounded-xl border border-border/70 bg-background/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Performance and maintainability notes</p>
+                  <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
+                    {[...response.performanceNotes, ...response.maintainabilityNotes].map((item) => (
+                      <li key={item} className="list-inside list-disc">{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
-          ) : null}
-        </StudioOutputCard>
+          </SectionCard>
+        </div>
       </div>
     </PageContainer>
   );
