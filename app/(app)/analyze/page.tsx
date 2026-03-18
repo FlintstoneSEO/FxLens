@@ -133,7 +133,7 @@ export default function AnalyzePage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <SectionCard
           title="Analysis Workspace"
-          description="Capture the request context and paste the material you want reviewed. Submission wiring will be added in a future phase."
+          description="Capture the request context and paste the material you want reviewed so the studio can generate focused analysis."
         >
           <form className="space-y-6">
             <div className="grid gap-4 md:grid-cols-2">

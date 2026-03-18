@@ -312,7 +312,7 @@ export default function BuildPage() {
         <div className="space-y-6">
           <SectionCard
             title="Studio snapshot"
-            description="A live summary of the build setup that will drive the future generation step."
+            description="A live summary of the build setup that will guide the generated build brief."
           >
             <div className="space-y-5">
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
