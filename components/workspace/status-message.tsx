@@ -3,9 +3,10 @@ import { cn } from "@/lib/utils";
 type StatusMessageProps = {
   message: string;
   tone?: "error" | "info";
+  label?: string;
 };
 
-export function StatusMessage({ message, tone = "info" }: StatusMessageProps) {
+export function StatusMessage({ message, tone = "info", label }: StatusMessageProps) {
   return (
     <div
       className={cn(
@@ -15,7 +16,8 @@ export function StatusMessage({ message, tone = "info" }: StatusMessageProps) {
           : "border-border/70 bg-background/60 text-muted-foreground"
       )}
     >
-      {message}
+      {label ? <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em]">{label}</p> : null}
+      <p>{message}</p>
     </div>
   );
 }
