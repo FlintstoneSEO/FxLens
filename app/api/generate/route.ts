@@ -12,10 +12,10 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const response = await generateBuildWithOpenAI(parsed.data);
+    const response = await generateBuildWithOpenAI(parsed.data as import("@/lib/contracts/workspace").BuildRequest);
     return NextResponse.json(response);
   } catch {
-    const fallback = createBuildMockResponse(parsed.data);
+    const fallback = createBuildMockResponse(parsed.data as import("@/lib/contracts/workspace").BuildRequest);
     return NextResponse.json(fallback);
   }
 }
