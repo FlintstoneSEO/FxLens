@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, ClipboardList, Gauge, Lightbulb, SearchCode, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardList, Lightbulb, SearchCode, Sparkles } from "lucide-react";
 
 import { CodePanel } from "@/components/ui/code-panel";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -134,22 +134,10 @@ export function AnalyzeResults({ result }: AnalyzeResultsProps) {
           emptyLabel="No findings were returned for this run."
         />
         <ResultList
-          title="Delegation Risks"
-          items={result.delegationConsiderations}
+          title="Risks & issues"
+          items={[...result.delegationConsiderations, ...result.performanceNotes, ...result.maintainabilityNotes]}
           icon={AlertTriangle}
-          emptyLabel="No delegation-specific risks were reported."
-        />
-        <ResultList
-          title="Performance Issues"
-          items={result.performanceNotes}
-          icon={Gauge}
-          emptyLabel="No performance issues were returned."
-        />
-        <ResultList
-          title="Maintainability Notes"
-          items={result.maintainabilityNotes}
-          icon={ClipboardList}
-          emptyLabel="No maintainability notes were returned."
+          emptyLabel="No risks or issues were reported for this run."
         />
       </div>
 
