@@ -12,10 +12,10 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   try {
-    const response = await generateAnalyzeWithOpenAI(parsed.data);
+    const response = await generateAnalyzeWithOpenAI(parsed.data as import("@/lib/contracts/workspace").AnalyzeRequest);
     return NextResponse.json(response);
   } catch {
-    const fallback = createAnalyzeMockResponse(parsed.data);
+    const fallback = createAnalyzeMockResponse(parsed.data as import("@/lib/contracts/workspace").AnalyzeRequest);
     return NextResponse.json(fallback);
   }
 }
