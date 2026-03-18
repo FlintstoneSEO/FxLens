@@ -11,6 +11,7 @@ import {
   Search,
   Settings,
   Sparkles,
+  WandSparkles,
   type LucideIcon
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ const navItems: readonly NavItem[] = [
   { href: "/scope", label: "Scope Studio", icon: Sparkles },
   { href: "/build", label: "Build Studio", icon: Blocks },
   { href: "/analyze", label: "Analyze Studio", icon: Search },
+  { href: "/recommend", label: "Recommendations", icon: WandSparkles },
   { href: "/solution-review", label: "Solution Review", icon: ClipboardCheck },
   { href: "/history", label: "History", icon: FileClock },
   { href: "/prompts", label: "Prompts", icon: BarChart3 },
