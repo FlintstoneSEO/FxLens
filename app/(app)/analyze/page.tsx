@@ -1,78 +1,125 @@
 "use client";
 
-import { useState } from "react";
-import { LoaderCircle, Sparkles } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { FileCode2, GitBranch, ListChecks, TextSearch } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
-import { FormInputField } from "@/components/workspace/form-input-field";
-import { FormTextareaField } from "@/components/workspace/form-textarea-field";
-import { AnalyzeResults } from "@/components/workspace/analyze-results";
-import { StatusMessage } from "@/components/workspace/status-message";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
-import type { AnalyzeRequest, AnalyzeResponse, AnalyzeMode, DataSourceType } from "@/lib/contracts/workspace";
 
-const initialRequest: AnalyzeRequest = {
-  mode: "formula_analyzer",
-  artifactName: "Order Gallery Items",
-  artifactPurpose: "Load manager-visible orders with role-based filtering.",
-  dataSource: "sql",
-  symptoms: "Slow screen rendering, repeated data calls, and concern about delegation when records grow.",
-  inputPayload: `Filter(\n  Orders,\n  CustomerId = selectedCustomer.Id &&\n  LookUp(Users, Id = User().Email, Role) = \"Manager\"\n)`,
-  relatedFormulas: "Set(varManagerRole, LookUp(Users, Id = User().Email, Role))"
+const analysisUseCases = [
+  {
+    title: "Pasted code",
+    description: "Review Power Fx, TypeScript, SQL, or configuration snippets for correctness, risk, and maintainability.",
+    icon: FileCode2
+  },
+  {
+    title: "Architecture notes",
+    description: "Inspect solution structure, integration decisions, and data flow notes before implementation starts.",
+    icon: GitBranch
+  },
+  {
+    title: "Issue descriptions",
+    description: "Break down defects, unexpected behavior, repro steps, and likely root causes for deeper analysis.",
+    icon: TextSearch
+  },
+  {
+    title: "Requirements text",
+    description: "Evaluate acceptance criteria, edge cases, dependencies, and ambiguity in functional requirements.",
+    icon: ListChecks
+  }
+] as const;
+
+const promptStarters = [
+  "Identify likely logic risks, hidden assumptions, and missing edge cases.",
+  "Highlight performance, delegation, or maintainability concerns.",
+  "Summarize the problem framing and point out any unclear requirements.",
+  "Call out follow-up questions that would improve implementation confidence."
+] as const;
+
+const sampleFormula = `If(
+  varIsManager,
+  Filter(Orders, ManagerId = varCurrentUserId),
+  Filter(Orders, CreatedById = varCurrentUserId)
+)`;
+
+const initialFormState = {
+  mode: "formula_analyzer" as AnalyzeMode,
+  artifactName: "Order review formula",
+  artifactPurpose: "Validate manager-only order review access.",
+  dataSource: "dataverse" as DataSourceType,
+  symptoms: "Repeated lookups and potential delegation warnings when the dataset grows.",
+  inputPayload: sampleFormula,
+  relatedFormulas: "Set(varIsManager, LookUp(Users, Id = User().Email, Role = \"Manager\"))"
 };
 
-const analyzeModes: { value: AnalyzeMode; label: string }[] = [
-  { value: "formula_analyzer", label: "Formula Analyzer" },
-  { value: "screen_analyzer", label: "Screen Analyzer" },
-  { value: "component_analyzer", label: "Component Analyzer" },
-  { value: "performance_advisor", label: "Performance Advisor" }
-];
+function DetailList({ title, items }: { title: string; items: string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
 
-const dataSourceOptions: { value: DataSourceType; label: string }[] = [
-  { value: "dataverse", label: "Dataverse" },
-  { value: "sql", label: "SQL" },
-  { value: "sharepoint", label: "SharePoint" },
-  { value: "api", label: "API" },
-  { value: "mixed", label: "Mixed" },
-  { value: "other", label: "Other" }
-];
+  return (
+    <div>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">{title}</p>
+      <ul className="space-y-1 text-sm text-muted-foreground">
+        {items.map((item) => (
+          <li key={item} className="list-inside list-disc">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function AnalyzePage() {
-  const [request, setRequest] = useState<AnalyzeRequest>(initialRequest);
-  const [result, setResult] = useState<AnalyzeResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [formState, setFormState] = useState(initialFormState);
+  const [response, setResponse] = useState<AnalyzeResponse | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFieldChange = <K extends keyof AnalyzeRequest>(field: K, value: AnalyzeRequest[K]) => {
-    setRequest((current) => ({ ...current, [field]: value }));
-  };
+  const isSubmitDisabled = useMemo(() => {
+    return (
+      isSubmitting ||
+      formState.artifactName.trim().length === 0 ||
+      formState.artifactPurpose.trim().length === 0 ||
+      formState.symptoms.trim().length === 0
+    );
+  }, [formState.artifactName, formState.artifactPurpose, formState.symptoms, isSubmitting]);
 
-  const handleAnalyze = async () => {
-    setIsLoading(true);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
-      const response = await fetch("/api/analyze", {
+      const apiResponse = await fetch("/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify({
+          ...formState,
+          relatedFormulas: formState.relatedFormulas.trim() || undefined
+        })
       });
 
-      if (!response.ok) {
-        throw new Error("Analyze request failed.");
+      const payload = (await apiResponse.json()) as AnalyzeResponse | { error?: { message?: string } };
+
+      if (!apiResponse.ok) {
+        const message = "error" in payload ? payload.error?.message : undefined;
+        setResponse(null);
+        setErrorMessage(message ?? "Analyze request failed.");
+        return;
       }
 
-      const payload = (await response.json()) as AnalyzeResponse;
-      setResult(payload);
-    } catch (error) {
-      console.error(error);
-      setErrorMessage("We couldn't complete the analysis right now. Please retry in a moment.");
+      setResponse(payload as AnalyzeResponse);
+    } catch {
+      setResponse(null);
+      setErrorMessage("Unable to submit analyze request right now.");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -80,99 +127,117 @@ export default function AnalyzePage() {
     <PageContainer>
       <PageHeader
         title="Analyze Studio"
-        description="Inspect Power Fx formulas for delegation issues, repeated lookups, and data loading inefficiencies with a clearer input and findings workflow."
-        actions={
-          <Button onClick={handleAnalyze} disabled={isLoading}>
-            {isLoading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-            {isLoading ? "Analyzing..." : "Run Analyze"}
-          </Button>
-        }
+        description="Inspect code, notes, issue reports, or requirements in a focused workspace before turning findings into build-ready changes."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.95fr)_minmax(0,1.45fr)]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,0.9fr)]">
         <SectionCard
-          title="Analysis Input"
-          description="Define the artifact context and formula payload. Results render separately so findings stay easy to review and share."
-          className="h-fit"
+          title="Analysis Workspace"
+          description="Capture the request context and paste the material you want reviewed. Submission wiring will be added in a future phase."
         >
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <form className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2">
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium">Analyzer mode</span>
+                <span className="text-sm font-medium">Analysis focus</span>
                 <select
-                  value={request.mode}
-                  onChange={(event) => handleFieldChange("mode", event.target.value as AnalyzeMode)}
+                  defaultValue="code-review"
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  {analyzeModes.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
+                  <option value="code-review">Code review</option>
+                  <option value="architecture-review">Architecture review</option>
+                  <option value="issue-triage">Issue triage</option>
+                  <option value="requirements-review">Requirements review</option>
+                  <option value="general-analysis">General analysis</option>
                 </select>
               </label>
 
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium">Data source</span>
-                <select
-                  value={request.dataSource}
-                  onChange={(event) => handleFieldChange("dataSource", event.target.value as DataSourceType)}
+                <span className="text-sm font-medium">Optional title</span>
+                <input
+                  type="text"
+                  placeholder="e.g. Order screen delegation investigation"
                   className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {dataSourceOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                />
               </label>
             </div>
 
-            <FormInputField
-              label="Artifact name"
-              value={request.artifactName}
-              placeholder="Gallery Items formula"
-              onChange={(value) => handleFieldChange("artifactName", value)}
-            />
-            <FormTextareaField
-              label="Artifact purpose"
-              value={request.artifactPurpose}
-              rows={3}
-              placeholder="Describe what this artifact is responsible for."
-              onChange={(value) => handleFieldChange("artifactPurpose", value)}
-            />
-            <FormTextareaField
-              label="Symptoms or concerns"
-              value={request.symptoms}
-              rows={3}
-              placeholder="Slow loads, delegation warnings, duplicated logic..."
-              onChange={(value) => handleFieldChange("symptoms", value)}
-            />
-            <FormTextareaField
-              label="Analyze payload"
-              value={request.inputPayload}
-              rows={8}
-              placeholder="Paste the primary formula, screen logic, or component definition."
-              onChange={(value) => handleFieldChange("inputPayload", value)}
-            />
-            <FormTextareaField
-              label="Related formulas"
-              value={request.relatedFormulas ?? ""}
-              rows={4}
-              placeholder="Optional supporting formulas or helper variables."
-              onChange={(value) => handleFieldChange("relatedFormulas", value)}
-            />
+            <label className="block space-y-1.5">
+              <span className="text-sm font-medium">What do you want analyzed?</span>
+              <textarea
+                rows={16}
+                placeholder="Paste code, architecture notes, issue details, or requirements here. Include relevant constraints, expected behavior, and any known pain points."
+                className="w-full rounded-xl border border-border bg-background px-4 py-3 font-mono text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </label>
 
-            {errorMessage ? <StatusMessage message={errorMessage} tone="error" /> : null}
-          </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Context and constraints</span>
+                <textarea
+                  rows={7}
+                  placeholder="Add app context, target users, impacted screens, non-functional requirements, or constraints the analysis should respect."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium">Questions to answer</span>
+                <textarea
+                  rows={7}
+                  placeholder="List the questions you want the analysis to cover, such as risk areas, edge cases, performance concerns, or recommendations."
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm leading-6 outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </label>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-4">
+              <Button type="button">Analyze Input</Button>
+              <Button type="reset" variant="secondary">
+                Clear Workspace
+              </Button>
+              <p className="text-sm text-muted-foreground">
+                Input is local-only for now. API submission and saved analysis runs are not wired yet.
+              </p>
+            </div>
+          </form>
         </SectionCard>
 
-        <SectionCard
-          title="Structured Findings"
-          description="Analysis output is organized into findings, issues, risks, and recommendations for faster triage."
-        >
-          <AnalyzeResults result={result} />
-        </SectionCard>
+        <div className="space-y-6">
+          <SectionCard
+            title="Common analysis inputs"
+            description="Start with whichever artifact best represents the problem you need to understand."
+          >
+            <div className="space-y-3">
+              {analysisUseCases.map(({ title, description, icon: Icon }) => (
+                <div
+                  key={title}
+                  className="flex gap-3 rounded-xl border border-border/70 bg-background/70 p-4"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-semibold">{title}</h3>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          <SectionCard
+            title="Prompt starters"
+            description="Useful directions to include when you want focused findings instead of a generic review."
+          >
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              {promptStarters.map((starter) => (
+                <li key={starter} className="rounded-lg border border-dashed border-border bg-background/60 px-4 py-3">
+                  {starter}
+                </li>
+              ))}
+            </ul>
+          </SectionCard>
+        </div>
       </div>
     </PageContainer>
   );
