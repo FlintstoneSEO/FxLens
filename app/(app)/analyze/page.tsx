@@ -1,3 +1,6 @@
+"use client";
+
+import React, { useMemo, useState } from "react";
 import { FileCode2, GitBranch, ListChecks, TextSearch } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -34,6 +37,12 @@ const promptStarters = [
   "Summarize the problem framing and point out any unclear requirements.",
   "Call out follow-up questions that would improve implementation confidence."
 ] as const;
+
+const sampleFormula = `If(
+  varIsManager,
+  Filter(Orders, ManagerId = varCurrentUserId),
+  Filter(Orders, CreatedById = varCurrentUserId)
+)`;
 
 const initialFormState = {
   mode: "formula_analyzer" as AnalyzeMode,
