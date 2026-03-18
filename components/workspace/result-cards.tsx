@@ -11,7 +11,7 @@ import type {
   SuggestedSqlArtifact
 } from "@/lib/contracts/workspace";
 
-type DetailListProps = {
+export type DetailListProps = {
   title: string;
   items: readonly string[];
 };
@@ -48,6 +48,23 @@ function ResultCard({ title, subtitle, children }: ResultCardProps) {
       {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
       <div className="mt-3 space-y-3">{children}</div>
     </article>
+  );
+}
+
+
+export function SummaryPanel({
+  title,
+  subtitle,
+  items
+}: {
+  title: string;
+  subtitle?: string;
+  items: readonly string[];
+}) {
+  return (
+    <ResultCard title={title} subtitle={subtitle}>
+      <DetailList title={title} items={items} />
+    </ResultCard>
   );
 }
 

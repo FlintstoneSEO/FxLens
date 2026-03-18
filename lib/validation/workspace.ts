@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import type {
@@ -97,16 +98,16 @@ export const solutionReviewRequestSchema = z
   })
   .strict();
 
-type _ScopeSchemaMatchesContract = z.infer<typeof scopeRequestSchema> extends ScopeRequest ? true : never;
-type _ScopeContractMatchesSchema = ScopeRequest extends z.infer<typeof scopeRequestSchema> ? true : never;
-type _BuildSchemaMatchesContract = z.infer<typeof buildRequestSchema> extends BuildRequest ? true : never;
-type _BuildContractMatchesSchema = BuildRequest extends z.infer<typeof buildRequestSchema> ? true : never;
-type _AnalyzeSchemaMatchesContract = z.infer<typeof analyzeRequestSchema> extends AnalyzeRequest ? true : never;
-type _AnalyzeContractMatchesSchema = AnalyzeRequest extends z.infer<typeof analyzeRequestSchema> ? true : never;
-type _RecommendSchemaMatchesContract = z.infer<typeof recommendationRequestSchema> extends RecommendationRequest ? true : never;
-type _RecommendContractMatchesSchema = RecommendationRequest extends z.infer<typeof recommendationRequestSchema> ? true : never;
-type _SolutionReviewSchemaMatchesContract = z.infer<typeof solutionReviewRequestSchema> extends SolutionReviewRequest ? true : never;
-type _SolutionReviewContractMatchesSchema = SolutionReviewRequest extends z.infer<typeof solutionReviewRequestSchema>
+export type _ScopeSchemaMatchesContract = Infer<typeof scopeRequestSchema> extends ScopeRequest ? true : never;
+export type _ScopeContractMatchesSchema = ScopeRequest extends Infer<typeof scopeRequestSchema> ? true : never;
+export type _BuildSchemaMatchesContract = Infer<typeof buildRequestSchema> extends BuildRequest ? true : never;
+export type _BuildContractMatchesSchema = BuildRequest extends Infer<typeof buildRequestSchema> ? true : never;
+export type _AnalyzeSchemaMatchesContract = Infer<typeof analyzeRequestSchema> extends AnalyzeRequest ? true : never;
+export type _AnalyzeContractMatchesSchema = AnalyzeRequest extends Infer<typeof analyzeRequestSchema> ? true : never;
+export type _RecommendSchemaMatchesContract = Infer<typeof recommendationRequestSchema> extends RecommendationRequest ? true : never;
+export type _RecommendContractMatchesSchema = RecommendationRequest extends Infer<typeof recommendationRequestSchema> ? true : never;
+export type _SolutionReviewSchemaMatchesContract = Infer<typeof solutionReviewRequestSchema> extends SolutionReviewRequest ? true : never;
+export type _SolutionReviewContractMatchesSchema = SolutionReviewRequest extends Infer<typeof solutionReviewRequestSchema>
   ? true
   : never;
 
@@ -133,24 +134,56 @@ type ParseValidationFailure = {
   error: ValidationErrorPayload;
 };
 
+function createValidationErrorPayload(message: string, issues: ValidationIssue[]): ValidationErrorPayload {
+  return {
+    error: {
+      code: "INVALID_REQUEST_BODY",
+      message,
+      issues
+    }
+  };
+}
+
+export function createValidationErrorResponse(error: ValidationErrorPayload): Response {
+  return NextResponse.json(error, { status: 400 });
+}
+
 export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
   request: Request,
   schema: TSchema
 ): Promise<ParseValidationSuccess<z.infer<TSchema>> | ParseValidationFailure> {
+  const contentType = request.headers.get("content-type");
+
+  if (contentType && !contentType.toLowerCase().includes("application/json")) {
+    return {
+      success: false,
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Content-Type must be application/json." }
+      ])
+    };
+  }
+
+  const requestBody = await request.text();
+
+  if (!requestBody.trim()) {
+    return {
+      success: false,
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Request body is required." }
+      ])
+    };
+  }
+
   let payload: unknown;
 
   try {
-    payload = await request.json();
+    payload = JSON.parse(requestBody);
   } catch {
     return {
       success: false,
-      error: {
-        error: {
-          code: "INVALID_REQUEST_BODY",
-          message: "Request body must be valid JSON.",
-          issues: [{ path: "$", message: "Malformed JSON payload." }]
-        }
-      }
+      error: createValidationErrorPayload("Request body must be valid JSON.", [
+        { path: "$", message: "Malformed JSON payload." }
+      ])
     };
   }
 
@@ -159,21 +192,18 @@ export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
   if (!parsed.success) {
     return {
       success: false,
-      error: {
-        error: {
-          code: "INVALID_REQUEST_BODY",
-          message: "Request body validation failed.",
-          issues: parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
-            path: issue.path.length > 0 ? issue.path.join(".") : "$",
-            message: issue.message
-          }))
-        }
-      }
+      error: createValidationErrorPayload(
+        "Request body validation failed.",
+        parsed.error.issues.map((issue: { path: Array<string | number>; message: string }) => ({
+          path: issue.path.length > 0 ? issue.path.join(".") : "$",
+          message: issue.message
+        }))
+      )
     };
   }
 
   return {
     success: true,
-    data: parsed.data
+    data: parsed.data as Infer<TSchema>
   };
 }
