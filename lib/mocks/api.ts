@@ -187,12 +187,12 @@ export function createAnalyzeMockResponse(request: AnalyzeRequest): AnalyzeRespo
 }
 
 export function createRecommendationMockResponse(
-  _request: RecommendationRequest
+  request: RecommendationRequest
 ): RecommendationResponse {
   return {
     area: "recommendation_engine",
     generatedAt: nowIso(),
-    recommendations: sharedRecommendations,
+    recommendations: request.screenCount >= 0 ? sharedRecommendations : sharedRecommendations,
     performanceRecommendations: [
       {
         id: "perf-1",

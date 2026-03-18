@@ -8,7 +8,7 @@ export async function POST(request: Request): Promise<Response> {
     return createValidationErrorResponse(parsed.error);
   }
 
-  const response = createSolutionReviewMockResponse(parsed.data);
+  const response = createSolutionReviewMockResponse(parsed.data as import("@/lib/contracts/workspace").SolutionReviewRequest);
 
   return Response.json(response);
 }

@@ -5,15 +5,15 @@ import { analyzeResponseSchema, buildResponseSchema, scopeResponseSchema } from 
 
 export async function generateScopeWithOpenAI(request: ScopeRequest): Promise<ScopeResponse> {
   const prompts = createScopePrompts(request);
-  return requestStructuredJson(prompts.system, prompts.user, scopeResponseSchema);
+  return requestStructuredJson(prompts.system, prompts.user, scopeResponseSchema) as Promise<ScopeResponse>;
 }
 
 export async function generateBuildWithOpenAI(request: BuildRequest): Promise<BuildResponse> {
   const prompts = createBuildPrompts(request);
-  return requestStructuredJson(prompts.system, prompts.user, buildResponseSchema);
+  return requestStructuredJson(prompts.system, prompts.user, buildResponseSchema) as Promise<BuildResponse>;
 }
 
 export async function generateAnalyzeWithOpenAI(request: AnalyzeRequest): Promise<AnalyzeResponse> {
   const prompts = createAnalyzePrompts(request);
-  return requestStructuredJson(prompts.system, prompts.user, analyzeResponseSchema);
+  return requestStructuredJson(prompts.system, prompts.user, analyzeResponseSchema) as Promise<AnalyzeResponse>;
 }
