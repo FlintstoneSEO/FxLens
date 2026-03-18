@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { Infer as ZodInfer, ZodTypeAny } from "zod";
 
 import type {
   AnalyzeRequest,
@@ -98,16 +99,16 @@ export const solutionReviewRequestSchema = z
   })
   .strict();
 
-export type _ScopeSchemaMatchesContract = Infer<typeof scopeRequestSchema> extends ScopeRequest ? true : never;
-export type _ScopeContractMatchesSchema = ScopeRequest extends Infer<typeof scopeRequestSchema> ? true : never;
-export type _BuildSchemaMatchesContract = Infer<typeof buildRequestSchema> extends BuildRequest ? true : never;
-export type _BuildContractMatchesSchema = BuildRequest extends Infer<typeof buildRequestSchema> ? true : never;
-export type _AnalyzeSchemaMatchesContract = Infer<typeof analyzeRequestSchema> extends AnalyzeRequest ? true : never;
-export type _AnalyzeContractMatchesSchema = AnalyzeRequest extends Infer<typeof analyzeRequestSchema> ? true : never;
-export type _RecommendSchemaMatchesContract = Infer<typeof recommendationRequestSchema> extends RecommendationRequest ? true : never;
-export type _RecommendContractMatchesSchema = RecommendationRequest extends Infer<typeof recommendationRequestSchema> ? true : never;
-export type _SolutionReviewSchemaMatchesContract = Infer<typeof solutionReviewRequestSchema> extends SolutionReviewRequest ? true : never;
-export type _SolutionReviewContractMatchesSchema = SolutionReviewRequest extends Infer<typeof solutionReviewRequestSchema>
+export type _ScopeSchemaMatchesContract = ZodInfer<typeof scopeRequestSchema> extends ScopeRequest ? true : never;
+export type _ScopeContractMatchesSchema = ScopeRequest extends ZodInfer<typeof scopeRequestSchema> ? true : never;
+export type _BuildSchemaMatchesContract = ZodInfer<typeof buildRequestSchema> extends BuildRequest ? true : never;
+export type _BuildContractMatchesSchema = BuildRequest extends ZodInfer<typeof buildRequestSchema> ? true : never;
+export type _AnalyzeSchemaMatchesContract = ZodInfer<typeof analyzeRequestSchema> extends AnalyzeRequest ? true : never;
+export type _AnalyzeContractMatchesSchema = AnalyzeRequest extends ZodInfer<typeof analyzeRequestSchema> ? true : never;
+export type _RecommendSchemaMatchesContract = ZodInfer<typeof recommendationRequestSchema> extends RecommendationRequest ? true : never;
+export type _RecommendContractMatchesSchema = RecommendationRequest extends ZodInfer<typeof recommendationRequestSchema> ? true : never;
+export type _SolutionReviewSchemaMatchesContract = ZodInfer<typeof solutionReviewRequestSchema> extends SolutionReviewRequest ? true : never;
+export type _SolutionReviewContractMatchesSchema = SolutionReviewRequest extends ZodInfer<typeof solutionReviewRequestSchema>
   ? true
   : never;
 
@@ -148,10 +149,10 @@ export function createValidationErrorResponse(error: ValidationErrorPayload): Re
   return NextResponse.json(error, { status: 400 });
 }
 
-export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
+export async function parseAndValidateRequest<TSchema extends ZodTypeAny>(
   request: Request,
   schema: TSchema
-): Promise<ParseValidationSuccess<z.infer<TSchema>> | ParseValidationFailure> {
+): Promise<ParseValidationSuccess<ZodInfer<TSchema>> | ParseValidationFailure> {
   const contentType = request.headers.get("content-type");
 
   if (contentType && !contentType.toLowerCase().includes("application/json")) {
@@ -204,6 +205,6 @@ export async function parseAndValidateRequest<TSchema extends z.ZodTypeAny>(
 
   return {
     success: true,
-    data: parsed.data as Infer<TSchema>
+    data: parsed.data as ZodInfer<TSchema>
   };
 }
