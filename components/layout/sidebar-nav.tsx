@@ -30,7 +30,7 @@ const navItems: readonly NavItem[] = [
   { href: "/analyze", label: "Analyze Studio", icon: Search },
   { href: "/recommend", label: "Recommendations", icon: Wand2 },
   { href: "/solution-review", label: "Solution Review", icon: ClipboardCheck },
-  { href: "/history", label: "History", icon: FileClock },
+  { href: "/history", label: "Run History", icon: FileClock },
   { href: "/prompts", label: "Prompts", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
@@ -46,7 +46,7 @@ export function SidebarNav() {
       </div>
       <nav className="space-y-1.5">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
 
           return (

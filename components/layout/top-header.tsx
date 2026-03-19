@@ -10,7 +10,7 @@ const routeLabels: Record<string, string> = {
   "/build": "Build Studio",
   "/analyze": "Analyze Studio",
   "/solution-review": "Solution Review",
-  "/history": "History",
+  "/history": "Run History",
   "/prompts": "Prompts",
   "/settings": "Settings"
 };
