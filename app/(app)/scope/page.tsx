@@ -7,6 +7,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
+import { RunExportActions } from "@/components/workspace/run-export-actions";
 import { StatusMessage } from "@/components/workspace/status-message";
 import { STUDIO_RUN_LABEL, STUDIO_RUNNING_LABEL, StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
@@ -93,6 +94,7 @@ function FieldShell({ label, hint, children }: { label: string; hint?: string; c
 export default function ScopePage() {
   const [formState, setFormState] = useState<ScopeRequest>(initialFormState);
   const [result, setResult] = useState<ScopeResponse | null>(null);
+  const [submittedRequest, setSubmittedRequest] = useState<ScopeRequest | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -146,10 +148,12 @@ export default function ScopePage() {
         throw payload;
       }
 
+      setSubmittedRequest(formState);
       setResult(payload as ScopeResponse);
     } catch (error) {
       setErrorMessage(getValidationMessage(error));
       setResult(null);
+      setSubmittedRequest(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -337,6 +341,15 @@ export default function ScopePage() {
           generatedAtLabel={generatedAtLabel}
           isLoading={isSubmitting}
         >
+          {result && submittedRequest ? (
+            <RunExportActions
+              runType="scope_studio"
+              input={submittedRequest}
+              output={result}
+              generatedAt={result.generatedAt}
+              fileName={`${submittedRequest.projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "scope-run"}-scope-run`}
+            />
+          ) : null}
           <ScopeResultsPanel result={result} isLoading={isSubmitting} />
         </StudioOutputCard>
       </div>

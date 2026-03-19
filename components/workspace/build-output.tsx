@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { CodePanel } from "@/components/ui/code-panel";
 import { EmptyState } from "@/components/ui/empty-state";
+import { RunExportActions } from "@/components/workspace/run-export-actions";
 import {
   SuggestedComponentCard,
   SuggestedScreenCard,
@@ -151,6 +152,15 @@ export function BuildOutput({
 
   return (
     <div className="space-y-6">
+      {request ? (
+        <RunExportActions
+          runType="build_studio"
+          input={request}
+          output={response}
+          generatedAt={response.generatedAt}
+          fileName={`${request.promptTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "build-run"}-build-run`}
+        />
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <RequestSnapshot request={request} generatedAt={generatedAtLabel} />
 

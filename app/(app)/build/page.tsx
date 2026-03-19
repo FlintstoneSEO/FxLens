@@ -19,15 +19,6 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { BuildOutput } from "@/components/workspace/build-output";
-import { StatusMessage } from "@/components/workspace/status-message";
-import {
-  STUDIO_ERROR_LABEL,
-  STUDIO_LOADING_MESSAGE,
-  STUDIO_RUN_LABEL,
-  STUDIO_RUNNING_LABEL,
-  StudioInputCard,
-  StudioOutputCard
-} from "@/components/workspace/studio-shell";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 import { cn } from "@/lib/utils";
