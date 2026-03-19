@@ -9,9 +9,10 @@ type EmptyStateProps = {
   actionLabel?: string;
   actionIcon?: ReactNode;
   className?: string;
+  eyebrow?: string;
 };
 
-export function EmptyState({ title, description, actionLabel, actionIcon, className }: EmptyStateProps) {
+export function EmptyState({ title, description, actionLabel, actionIcon, className, eyebrow = "Empty state" }: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -19,7 +20,7 @@ export function EmptyState({ title, description, actionLabel, actionIcon, classN
         className
       )}
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Empty state</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{eyebrow}</p>
       <h3 className="mt-3 text-lg font-semibold tracking-tight">{title}</h3>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
       {actionLabel ? (

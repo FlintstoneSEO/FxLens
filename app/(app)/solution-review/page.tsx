@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
+import { StatusMessage } from "@/components/workspace/status-message";
 
 const starterArtifacts = [
   {
@@ -62,10 +63,15 @@ export default function SolutionReviewPage() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.9fr)]">
         <SectionCard
-          title="Review Intake Workspace"
-          description="Capture the core context reviewers need before automated diagnostics and recommendations are connected."
+          title="Review intake"
+          description="Capture the core context reviewers need before automated diagnostics, saved runs, and export-aware recommendations are connected."
         >
           <div className="space-y-6">
+            <StatusMessage
+              label="Workspace status"
+              tone="info"
+              message="Everything on this page stays local for now, matching the rest of the Phase 3 rollout while persistence, history, and export-backed diagnostics are wired in."
+            />
             <div className="grid gap-4 md:grid-cols-2">
               <FormInputField
                 label="Solution or package name"
@@ -115,12 +121,12 @@ export default function SolutionReviewPage() {
             />
 
             <div className="flex flex-wrap items-center gap-3 border-t border-border/70 pt-2">
-              <Button type="button">Review Input Ready</Button>
+              <Button type="button">Review brief ready</Button>
               <Button type="button" variant="secondary" onClick={resetWorkspace}>
                 Clear Workspace
               </Button>
               <p className="text-sm text-muted-foreground">
-                Submission stays local for now. API handoff will be added in a later phase.
+                Saved runs, exports, and diagnostics will connect here in a later phase.
               </p>
             </div>
           </div>
@@ -128,8 +134,8 @@ export default function SolutionReviewPage() {
 
         <div className="space-y-6">
           <SectionCard
-            title="Review Prep"
-            description="A lightweight checklist to help organize the solution package before analysis is wired in."
+            title="Export review checklist"
+            description="A lightweight checklist to help organize exported solution context before automated review is wired in."
           >
             <div className="space-y-4">
               {starterArtifacts.map(({ label, description, icon: Icon }) => (
@@ -149,8 +155,8 @@ export default function SolutionReviewPage() {
           </SectionCard>
 
           <SectionCard
-            title="Workspace Snapshot"
-            description="Quick status summary for the current review intake draft."
+            title="Review snapshot"
+            description="Quick status summary for the current export review draft."
           >
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
