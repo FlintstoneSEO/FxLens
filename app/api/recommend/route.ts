@@ -1,4 +1,5 @@
 import { createRecommendationMockResponse } from "@/lib/mocks/api";
+import { generateRecommendationWithOpenAI } from "@/lib/openai/workspace";
 import { createStudioRun } from "@/lib/server/studio-runs";
 import { createValidationErrorResponse, parseAndValidateRequest, recommendationRequestSchema } from "@/lib/validation/workspace";
 

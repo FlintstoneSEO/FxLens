@@ -1,6 +1,15 @@
 import type { ZodTypeAny } from "zod";
 
-import type { AnalyzeRequest, AnalyzeResponse, BuildRequest, BuildResponse, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
+import type {
+  AnalyzeRequest,
+  AnalyzeResponse,
+  BuildRequest,
+  BuildResponse,
+  RecommendationRequest,
+  RecommendationResponse,
+  ScopeRequest,
+  ScopeResponse
+} from "@/lib/contracts/workspace";
 import { requestStructuredJson } from "@/lib/openai/client";
 import {
   createAnalyzePrompts,

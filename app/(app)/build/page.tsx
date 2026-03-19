@@ -19,9 +19,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { BuildOutput } from "@/components/workspace/build-output";
+import { StatusMessage } from "@/components/workspace/status-message";
 import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
 import type { BuildTemplatePayload, StudioTemplate } from "@/lib/studio-templates";
+import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 import { cn } from "@/lib/utils";
 

@@ -139,6 +139,71 @@ const analyzeResponseShape = {
   ]
 };
 
+const recommendationResponseShape = {
+  area: "recommendation_engine",
+  generatedAt: "ISO-8601 datetime",
+  recommendations: [
+    {
+      id: "string",
+      type: "power_fx | sql_view | stored_procedure | power_automate | component | screen | backend_architecture | performance",
+      title: "string",
+      severity: "low | medium | high | critical",
+      rationale: "string",
+      nextSteps: ["string"]
+    }
+  ],
+  performanceRecommendations: [
+    {
+      id: "string",
+      title: "string",
+      severity: "low | medium | high | critical",
+      priority: 1,
+      rationale: "string",
+      expectedImpact: "string",
+      implementationNotes: ["string"]
+    }
+  ],
+  backendRecommendations: [
+    {
+      id: "string",
+      title: "string",
+      recommendationType: "backend_architecture | sql_view | stored_procedure",
+      rationale: "string",
+      tradeoffs: ["string"],
+      implementationNotes: ["string"]
+    }
+  ],
+  sqlArtifacts: [
+    {
+      id: "string",
+      kind: "view | stored_procedure",
+      name: "string",
+      purpose: "string",
+      definitionSummary: "string"
+    }
+  ],
+  suggestedComponents: [
+    {
+      id: "string",
+      name: "string",
+      purpose: "string",
+      inputs: ["string"],
+      outputs: ["string"],
+      reuseNotes: ["string"]
+    }
+  ],
+  suggestedFormulas: [
+    {
+      id: "string",
+      name: "string",
+      purpose: "string",
+      formula: "string",
+      notes: ["string"],
+      delegationConsiderations: ["string"]
+    }
+  ]
+};
+
 function formatJsonBlock(label: string, value: unknown): string {
   return [label, JSON.stringify(value, null, 2)].join("\n");
 }
@@ -197,4 +262,19 @@ export function createBuildPrompts(request: BuildRequest): PromptPair {
 
 export function createAnalyzePrompts(request: AnalyzeRequest): PromptPair {
   return buildPrompt(analyzePromptDefinition, request);
+}
+
+const recommendationPromptDefinition: StudioPromptDefinition<RecommendationRequest> = {
+  responseName: "RecommendationResponse",
+  studioInstructions: [
+    "Recommend practical Power Apps solution approaches tailored to the scenario, constraints, and desired outcomes."
+  ],
+  createUserSections: (request) => [
+    formatJsonBlock("Input request:", request),
+    formatJsonBlock("Required response shape:", recommendationResponseShape)
+  ]
+};
+
+export function createRecommendationPrompts(request: RecommendationRequest): PromptPair {
+  return buildPrompt(recommendationPromptDefinition, request);
 }
