@@ -18,5 +18,11 @@ export async function POST(request: Request): Promise<Response> {
     outputPayload: response
   });
 
-  return Response.json(response);
+  try {
+    const response = await generateRecommendationWithOpenAI(requestData);
+    return Response.json(response);
+  } catch {
+    const fallback = createRecommendationMockResponse(requestData);
+    return Response.json(fallback);
+  }
 }

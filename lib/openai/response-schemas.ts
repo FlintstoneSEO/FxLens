@@ -1,5 +1,9 @@
 import { z } from "zod";
+import type { Infer as ZodInfer } from "zod";
 
+const isoDateTimeSchema = z.string().min(1);
+const nonEmptyStringSchema = z.string().min(1);
+const nonEmptyStringArraySchema = z.array(nonEmptyStringSchema);
 const severitySchema = z.enum(["low", "medium", "high", "critical"]);
 const recommendationTypeSchema = z.enum([
   "power_fx",
@@ -12,97 +16,150 @@ const recommendationTypeSchema = z.enum([
   "performance"
 ]);
 
-const suggestedScreenSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  purpose: z.string().min(1),
-  targetRoles: z.array(z.string().min(1)),
-  keyDataSources: z.array(z.string().min(1)),
-  primaryActions: z.array(z.string().min(1))
-});
+const suggestedScreenSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    name: nonEmptyStringSchema,
+    purpose: nonEmptyStringSchema,
+    targetRoles: nonEmptyStringArraySchema,
+    keyDataSources: nonEmptyStringArraySchema,
+    primaryActions: nonEmptyStringArraySchema
+  })
+  .strict();
 
-const suggestedFormulaSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  purpose: z.string().min(1),
-  formula: z.string().min(1),
-  notes: z.array(z.string().min(1)),
-  delegationConsiderations: z.array(z.string().min(1))
-});
+const suggestedFormulaSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    name: nonEmptyStringSchema,
+    purpose: nonEmptyStringSchema,
+    formula: nonEmptyStringSchema,
+    notes: nonEmptyStringArraySchema,
+    delegationConsiderations: nonEmptyStringArraySchema
+  })
+  .strict();
 
-const suggestedComponentSchema = z.object({
-  id: z.string().min(1),
-  name: z.string().min(1),
-  purpose: z.string().min(1),
-  inputs: z.array(z.string().min(1)),
-  outputs: z.array(z.string().min(1)),
-  reuseNotes: z.array(z.string().min(1))
-});
+const suggestedComponentSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    name: nonEmptyStringSchema,
+    purpose: nonEmptyStringSchema,
+    inputs: nonEmptyStringArraySchema,
+    outputs: nonEmptyStringArraySchema,
+    reuseNotes: nonEmptyStringArraySchema
+  })
+  .strict();
 
-const backendRecommendationSchema = z.object({
-  id: z.string().min(1),
-  title: z.string().min(1),
-  recommendationType: z.enum(["backend_architecture", "sql_view", "stored_procedure"]),
-  rationale: z.string().min(1),
-  tradeoffs: z.array(z.string().min(1)),
-  implementationNotes: z.array(z.string().min(1))
-});
+const backendRecommendationSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    title: nonEmptyStringSchema,
+    recommendationType: z.enum(["backend_architecture", "sql_view", "stored_procedure"]),
+    rationale: nonEmptyStringSchema,
+    tradeoffs: nonEmptyStringArraySchema,
+    implementationNotes: nonEmptyStringArraySchema
+  })
+  .strict();
 
-const sqlArtifactSchema = z.object({
-  id: z.string().min(1),
-  kind: z.enum(["view", "stored_procedure"]),
-  name: z.string().min(1),
-  purpose: z.string().min(1),
-  definitionSummary: z.string().min(1)
-});
+const sqlArtifactSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    kind: z.enum(["view", "stored_procedure"]),
+    name: nonEmptyStringSchema,
+    purpose: nonEmptyStringSchema,
+    definitionSummary: nonEmptyStringSchema
+  })
+  .strict();
 
-const recommendationItemSchema = z.object({
-  id: z.string().min(1),
-  type: recommendationTypeSchema,
-  title: z.string().min(1),
-  severity: severitySchema,
-  rationale: z.string().min(1),
-  nextSteps: z.array(z.string().min(1))
-});
+const recommendationItemSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    type: recommendationTypeSchema,
+    title: nonEmptyStringSchema,
+    severity: severitySchema,
+    rationale: nonEmptyStringSchema,
+    nextSteps: nonEmptyStringArraySchema
+  })
+  .strict();
 
-export const scopeResponseSchema = z.object({
-  area: z.literal("scope_studio"),
-  generatedAt: z.string().min(1),
-  appSummary: z.string().min(1),
-  recommendedModules: z.array(z.string().min(1)),
-  suggestedScreens: z.array(suggestedScreenSchema),
-  dataEntities: z.array(z.string().min(1)),
-  backendRecommendations: z.array(backendRecommendationSchema),
-  sqlArtifacts: z.array(sqlArtifactSchema),
-  powerAutomateSuggestions: z.array(z.string().min(1)),
-  suggestedComponents: z.array(suggestedComponentSchema),
-  risksAndAssumptions: z.array(z.string().min(1)),
-  mvpPlan: z.array(z.string().min(1))
-});
+const performanceRecommendationSchema = z
+  .object({
+    id: nonEmptyStringSchema,
+    title: nonEmptyStringSchema,
+    severity: severitySchema,
+    priority: z.number().int(),
+    rationale: nonEmptyStringSchema,
+    expectedImpact: nonEmptyStringSchema,
+    implementationNotes: nonEmptyStringArraySchema
+  })
+  .strict();
 
-export const buildResponseSchema = z.object({
-  area: z.literal("build_studio"),
-  mode: z.enum(["screen_builder", "component_builder", "formula_builder"]),
-  generatedAt: z.string().min(1),
-  summary: z.string().min(1),
-  suggestedScreens: z.array(suggestedScreenSchema),
-  suggestedComponents: z.array(suggestedComponentSchema),
-  suggestedFormulas: z.array(suggestedFormulaSchema),
-  implementationNotes: z.array(z.string().min(1)),
-  performanceNotes: z.array(z.string().min(1))
-});
+export const scopeResponseSchema = z
+  .object({
+    area: z.literal("scope_studio"),
+    generatedAt: isoDateTimeSchema,
+    appSummary: nonEmptyStringSchema,
+    recommendedModules: nonEmptyStringArraySchema,
+    suggestedScreens: z.array(suggestedScreenSchema),
+    dataEntities: nonEmptyStringArraySchema,
+    backendRecommendations: z.array(backendRecommendationSchema),
+    sqlArtifacts: z.array(sqlArtifactSchema),
+    powerAutomateSuggestions: nonEmptyStringArraySchema,
+    suggestedComponents: z.array(suggestedComponentSchema),
+    risksAndAssumptions: nonEmptyStringArraySchema,
+    mvpPlan: nonEmptyStringArraySchema
+  })
+  .strict();
 
-export const analyzeResponseSchema = z.object({
-  area: z.literal("analyze_studio"),
-  mode: z.enum(["formula_analyzer", "screen_analyzer", "component_analyzer", "performance_advisor"]),
-  generatedAt: z.string().min(1),
-  summary: z.string().min(1),
-  severity: severitySchema,
-  rootCause: z.string().min(1),
-  findings: z.array(z.string().min(1)),
-  optimizedFormula: suggestedFormulaSchema.optional(),
-  delegationConsiderations: z.array(z.string().min(1)),
-  performanceNotes: z.array(z.string().min(1)),
-  maintainabilityNotes: z.array(z.string().min(1)),
-  recommendations: z.array(recommendationItemSchema)
-});
+export const buildResponseSchema = z
+  .object({
+    area: z.literal("build_studio"),
+    mode: z.enum(["screen_builder", "component_builder", "formula_builder"]),
+    generatedAt: isoDateTimeSchema,
+    summary: nonEmptyStringSchema,
+    suggestedScreens: z.array(suggestedScreenSchema),
+    suggestedComponents: z.array(suggestedComponentSchema),
+    suggestedFormulas: z.array(suggestedFormulaSchema),
+    implementationNotes: nonEmptyStringArraySchema,
+    performanceNotes: nonEmptyStringArraySchema
+  })
+  .strict();
+
+export const analyzeResponseSchema = z
+  .object({
+    area: z.literal("analyze_studio"),
+    mode: z.enum(["formula_analyzer", "screen_analyzer", "component_analyzer", "performance_advisor"]),
+    generatedAt: isoDateTimeSchema,
+    summary: nonEmptyStringSchema,
+    severity: severitySchema,
+    rootCause: nonEmptyStringSchema,
+    findings: nonEmptyStringArraySchema,
+    optimizedFormula: suggestedFormulaSchema.optional(),
+    delegationConsiderations: nonEmptyStringArraySchema,
+    performanceNotes: nonEmptyStringArraySchema,
+    maintainabilityNotes: nonEmptyStringArraySchema,
+    recommendations: z.array(recommendationItemSchema)
+  })
+  .strict();
+
+export const recommendationResponseSchema = z
+  .object({
+    area: z.literal("recommendation_engine"),
+    generatedAt: isoDateTimeSchema,
+    recommendations: z.array(recommendationItemSchema),
+    performanceRecommendations: z.array(performanceRecommendationSchema),
+    backendRecommendations: z.array(backendRecommendationSchema),
+    sqlArtifacts: z.array(sqlArtifactSchema),
+    suggestedComponents: z.array(suggestedComponentSchema),
+    suggestedFormulas: z.array(suggestedFormulaSchema)
+  })
+  .strict();
+
+
+export type _ScopeResponseSchemaMatchesContract = ZodInfer<typeof scopeResponseSchema> extends import("@/lib/contracts/workspace").ScopeResponse ? true : never;
+export type _ScopeResponseContractMatchesSchema = import("@/lib/contracts/workspace").ScopeResponse extends ZodInfer<typeof scopeResponseSchema> ? true : never;
+export type _BuildResponseSchemaMatchesContract = ZodInfer<typeof buildResponseSchema> extends import("@/lib/contracts/workspace").BuildResponse ? true : never;
+export type _BuildResponseContractMatchesSchema = import("@/lib/contracts/workspace").BuildResponse extends ZodInfer<typeof buildResponseSchema> ? true : never;
+export type _AnalyzeResponseSchemaMatchesContract = ZodInfer<typeof analyzeResponseSchema> extends import("@/lib/contracts/workspace").AnalyzeResponse ? true : never;
+export type _AnalyzeResponseContractMatchesSchema = import("@/lib/contracts/workspace").AnalyzeResponse extends ZodInfer<typeof analyzeResponseSchema> ? true : never;
+export type _RecommendationResponseSchemaMatchesContract = ZodInfer<typeof recommendationResponseSchema> extends import("@/lib/contracts/workspace").RecommendationResponse ? true : never;
+export type _RecommendationResponseContractMatchesSchema = import("@/lib/contracts/workspace").RecommendationResponse extends ZodInfer<typeof recommendationResponseSchema> ? true : never;
