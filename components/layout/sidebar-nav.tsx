@@ -46,7 +46,7 @@ export function SidebarNav() {
       </div>
       <nav className="space-y-1.5">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
 
           return (
