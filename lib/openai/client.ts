@@ -31,6 +31,23 @@ function extractJsonContent(payload: ChatCompletionResponse): string {
   return content;
 }
 
+function normalizeJsonContent(rawContent: string): string {
+  const trimmed = rawContent.trim();
+
+  if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
+    return trimmed.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+  }
+
+  const firstBraceIndex = trimmed.indexOf("{");
+  const lastBraceIndex = trimmed.lastIndexOf("}");
+
+  if (firstBraceIndex >= 0 && lastBraceIndex > firstBraceIndex) {
+    return trimmed.slice(firstBraceIndex, lastBraceIndex + 1);
+  }
+
+  return trimmed;
+}
+
 export async function requestStructuredJson<T>(
   systemPrompt: string,
   userPrompt: string,
@@ -46,7 +63,7 @@ export async function requestStructuredJson<T>(
     },
     body: JSON.stringify({
       model: OPENAI_MODEL,
-      temperature: 0.2,
+      temperature: 0.1,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: systemPrompt },
@@ -61,7 +78,7 @@ export async function requestStructuredJson<T>(
   }
 
   const completion = (await response.json()) as ChatCompletionResponse;
-  const rawJson = extractJsonContent(completion);
+  const rawJson = normalizeJsonContent(extractJsonContent(completion));
 
   let parsedJson: unknown;
 
@@ -74,7 +91,7 @@ export async function requestStructuredJson<T>(
   const parsed = responseSchema.safeParse(parsedJson);
 
   if (!parsed.success) {
-    throw new Error("OpenAI returned JSON that does not match the expected response contract.");
+    throw new Error(`OpenAI returned JSON that does not match the expected response contract: ${JSON.stringify(parsed.error.issues)}`);
   }
 
   return parsed.data;

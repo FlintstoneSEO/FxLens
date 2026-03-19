@@ -1,4 +1,6 @@
 import { createRecommendationMockResponse } from "@/lib/mocks/api";
+import { generateRecommendationWithOpenAI } from "@/lib/openai/workspace";
+import { createStudioRun } from "@/lib/server/studio-runs";
 import { createValidationErrorResponse, parseAndValidateRequest, recommendationRequestSchema } from "@/lib/validation/workspace";
 
 export async function POST(request: Request): Promise<Response> {
@@ -8,7 +10,20 @@ export async function POST(request: Request): Promise<Response> {
     return createValidationErrorResponse(parsed.error);
   }
 
-  const response = createRecommendationMockResponse(parsed.data as import("@/lib/contracts/workspace").RecommendationRequest);
+  const requestData = parsed.data as import("@/lib/contracts/workspace").RecommendationRequest;
+  const response = createRecommendationMockResponse(requestData);
 
-  return Response.json(response);
+  await createStudioRun({
+    studioType: "recommendations",
+    inputPayload: requestData,
+    outputPayload: response
+  });
+
+  try {
+    const response = await generateRecommendationWithOpenAI(requestData);
+    return Response.json(response);
+  } catch {
+    const fallback = createRecommendationMockResponse(requestData);
+    return Response.json(fallback);
+  }
 }
