@@ -30,7 +30,7 @@ const navItems: readonly NavItem[] = [
   { href: "/analyze", label: "Analyze Studio", icon: Search },
   { href: "/recommend", label: "Recommendations", icon: Wand2 },
   { href: "/solution-review", label: "Solution Review", icon: ClipboardCheck },
-  { href: "/history", label: "History", icon: FileClock },
+  { href: "/history", label: "Run History", icon: FileClock },
   { href: "/prompts", label: "Prompts", icon: BarChart3 },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
