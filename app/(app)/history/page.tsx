@@ -1,5 +1,5 @@
+import { RunHistoryView } from "@/components/history/run-history-view";
 import { PageContainer } from "@/components/layout/page-container";
-import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 
@@ -7,17 +7,14 @@ export default function HistoryPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="History"
-        description="Browse prior generation runs, analysis snapshots, and recommendation history across your workspace."
+        title="Run History"
+        description="Browse saved studio runs, scan key status details, and quickly narrow results by studio type."
       />
       <SectionCard
-        title="Timeline"
-        description="Historical records and saved outputs will appear here once persistent storage is connected."
+        title="Saved runs"
+        description="Phase 3 keeps recent studio activity visible in a lightweight history view without opening full run details."
       >
-        <EmptyState
-          title="No history available"
-          description="As your team generates architectures and analyses, this timeline will keep a searchable activity trail."
-        />
+        <RunHistoryView />
       </SectionCard>
     </PageContainer>
   );
