@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FormEvent, useMemo, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -97,6 +97,7 @@ export default function ScopePage() {
   const [result, setResult] = useState<ScopeResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rerunMessage, setRerunMessage] = useState<string | null>(null);
 
   const isSubmitDisabled = useMemo(
     () =>
@@ -130,6 +131,17 @@ export default function ScopePage() {
     }
   };
 
+  useEffect(() => {
+    const queuedRun = consumeQueuedRerun("scope");
+
+    if (!queuedRun) {
+      return;
+    }
+
+    setFormState(queuedRun.request);
+    setRerunMessage(`Loaded saved input from ${queuedRun.title}. Review it and run Scope Studio again when you're ready.`);
+  }, []);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -148,7 +160,16 @@ export default function ScopePage() {
         throw payload;
       }
 
-      setResult(payload as ScopeResponse);
+      const savedResponse = payload as ScopeResponse;
+      setResult(savedResponse);
+      saveRun(
+        createSavedRunRecord({
+          studio: "scope",
+          title: formState.projectName.trim() || "Scope run",
+          request: formState,
+          response: savedResponse
+        })
+      );
     } catch (error) {
       setErrorMessage(getValidationMessage(error));
       setResult(null);
@@ -190,6 +211,7 @@ export default function ScopePage() {
                 </p>
               </div>
             </div>
+            {rerunMessage ? <StatusMessage label="Saved run loaded" tone="info" message={rerunMessage} /> : null}
 
             <FormSection
               eyebrow="Project foundation"
