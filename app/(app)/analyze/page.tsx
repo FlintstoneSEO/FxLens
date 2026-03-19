@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusMessage } from "@/components/workspace/status-message";
 import { AnalyzeResults } from "@/components/workspace/analyze-results";
+import { RunExportActions } from "@/components/workspace/run-export-actions";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
 import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
@@ -334,6 +335,15 @@ export default function AnalyzePage() {
           generatedAtLabel={generatedAtLabel}
           isLoading={isSubmitting}
         >
+          {response && submittedRequest ? (
+            <RunExportActions
+              runType="analyze_studio"
+              input={submittedRequest}
+              output={response}
+              generatedAt={response.generatedAt}
+              fileName={`${submittedRequest.artifactName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "analyze-run"}-analysis-run`}
+            />
+          ) : null}
           <AnalyzeResults result={response} request={submittedRequest} isLoading={isSubmitting} />
         </StudioOutputCard>
       </div>
