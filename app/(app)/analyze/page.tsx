@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, SearchCode } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -10,8 +10,10 @@ import { StatusMessage } from "@/components/workspace/status-message";
 import { AnalyzeResults } from "@/components/workspace/analyze-results";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { AnalyzeMode, AnalyzeRequest, AnalyzeResponse, DataSourceType } from "@/lib/contracts/workspace";
+import type { StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
@@ -90,6 +92,7 @@ export default function AnalyzePage() {
   const [submittedRequest, setSubmittedRequest] = useState<AnalyzeRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rerunMessage, setRerunMessage] = useState<string | null>(null);
 
   const isSubmitDisabled = useMemo(
     () =>
@@ -126,6 +129,17 @@ export default function AnalyzePage() {
     }
   };
 
+  useEffect(() => {
+    const queuedRun = consumeQueuedRerun("analyze");
+
+    if (!queuedRun) {
+      return;
+    }
+
+    setFormState(queuedRun.request);
+    setRerunMessage(`Loaded saved input from ${queuedRun.title}. Review it and run Analyze Studio again when you're ready.`);
+  }, []);
+
   const resetWorkspace = () => {
     setFormState(initialFormState);
     setResponse(null);
@@ -156,8 +170,17 @@ export default function AnalyzePage() {
         throw payload;
       }
 
+      const savedResponse = payload as AnalyzeResponse;
       setSubmittedRequest(requestPayload);
-      setResponse(payload as AnalyzeResponse);
+      setResponse(savedResponse);
+      saveRun(
+        createSavedRunRecord({
+          studio: "analyze",
+          title: requestPayload.artifactName.trim() || "Analyze run",
+          request: requestPayload,
+          response: savedResponse
+        })
+      );
     } catch (error) {
       setResponse(null);
       setSubmittedRequest(null);
@@ -165,6 +188,14 @@ export default function AnalyzePage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<AnalyzeRequest>)
+    }));
+    setErrorMessage(null);
   };
 
   return (
@@ -181,6 +212,8 @@ export default function AnalyzePage() {
           accent="input"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <StudioTemplatePicker area="analyze" disabled={isSubmitting} onApplyTemplate={applyTemplate} />
+
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <SearchCode className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
@@ -189,6 +222,7 @@ export default function AnalyzePage() {
                 </p>
               </div>
             </div>
+            {rerunMessage ? <StatusMessage label="Saved run loaded" tone="info" message={rerunMessage} /> : null}
 
             <FormSection
               eyebrow="Analysis setup"

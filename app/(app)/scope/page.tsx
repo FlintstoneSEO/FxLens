@@ -1,6 +1,6 @@
 "use client";
 
-import React, { FormEvent, useMemo, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 
 import { PageContainer } from "@/components/layout/page-container";
@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
 import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import { STUDIO_RUN_LABEL, STUDIO_RUNNING_LABEL, StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
+import type { StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
@@ -95,6 +97,7 @@ export default function ScopePage() {
   const [result, setResult] = useState<ScopeResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rerunMessage, setRerunMessage] = useState<string | null>(null);
 
   const isSubmitDisabled = useMemo(
     () =>
@@ -128,6 +131,17 @@ export default function ScopePage() {
     }
   };
 
+  useEffect(() => {
+    const queuedRun = consumeQueuedRerun("scope");
+
+    if (!queuedRun) {
+      return;
+    }
+
+    setFormState(queuedRun.request);
+    setRerunMessage(`Loaded saved input from ${queuedRun.title}. Review it and run Scope Studio again when you're ready.`);
+  }, []);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -146,13 +160,30 @@ export default function ScopePage() {
         throw payload;
       }
 
-      setResult(payload as ScopeResponse);
+      const savedResponse = payload as ScopeResponse;
+      setResult(savedResponse);
+      saveRun(
+        createSavedRunRecord({
+          studio: "scope",
+          title: formState.projectName.trim() || "Scope run",
+          request: formState,
+          response: savedResponse
+        })
+      );
     } catch (error) {
       setErrorMessage(getValidationMessage(error));
       setResult(null);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<ScopeRequest>)
+    }));
+    setErrorMessage(null);
   };
 
   return (
@@ -169,6 +200,8 @@ export default function ScopePage() {
           accent="input"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <StudioTemplatePicker area="scope" disabled={isSubmitting} onApplyTemplate={applyTemplate} />
+
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
@@ -178,6 +211,7 @@ export default function ScopePage() {
                 </p>
               </div>
             </div>
+            {rerunMessage ? <StatusMessage label="Saved run loaded" tone="info" message={rerunMessage} /> : null}
 
             <FormSection
               eyebrow="Project foundation"

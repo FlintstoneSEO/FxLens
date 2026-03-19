@@ -1,23 +1,39 @@
+import { RunHistoryView } from "@/components/history/run-history-view";
 import { PageContainer } from "@/components/layout/page-container";
-import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
+import { getPersistedRuns, getStudioTypeLabel } from "@/lib/persisted-runs";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short"
+  }).format(new Date(value));
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium capitalize tracking-wide text-emerald-200">
+      {status}
+    </span>
+  );
+}
 
 export default function HistoryPage() {
+  const runs = getPersistedRuns();
+
   return (
     <PageContainer>
       <PageHeader
-        title="History"
-        description="Browse prior generation runs, analysis snapshots, and recommendation history across your workspace."
+        title="Run History"
+        description="Browse saved studio runs, scan key status details, and quickly narrow results by studio type."
       />
+
       <SectionCard
-        title="Timeline"
-        description="Historical records and saved outputs will appear here once persistent storage is connected."
+        title="Saved runs"
+        description="Phase 3 keeps recent studio activity visible in a lightweight history view without opening full run details."
       >
-        <EmptyState
-          title="No history available"
-          description="As your team generates architectures and analyses, this timeline will keep a searchable activity trail."
-        />
+        <RunHistoryView />
       </SectionCard>
     </PageContainer>
   );
