@@ -1,24 +1,15 @@
 import { PageContainer } from "@/components/layout/page-container";
-import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
+import { RunHistoryClient } from "@/components/history/run-history-client";
 
 export default function HistoryPage() {
   return (
     <PageContainer>
       <PageHeader
         title="History"
-        description="Browse prior generation runs, analysis snapshots, and recommendation history across your workspace."
+        description="Browse saved studio runs, inspect the payload that produced them, and send the same input back through the matching workflow."
       />
-      <SectionCard
-        title="Timeline"
-        description="Historical records and saved outputs will appear here once persistent storage is connected."
-      >
-        <EmptyState
-          title="No history available"
-          description="As your team generates architectures and analyses, this timeline will keep a searchable activity trail."
-        />
-      </SectionCard>
+      <RunHistoryClient />
     </PageContainer>
   );
 }
