@@ -1,4 +1,4 @@
-import type { AnalyzeRequest, BuildRequest, ScopeRequest } from "@/lib/contracts/workspace";
+import type { AnalyzeRequest, BuildRequest, RecommendationRequest, ScopeRequest } from "@/lib/contracts/workspace";
 
 type PromptPair = {
   system: string;
