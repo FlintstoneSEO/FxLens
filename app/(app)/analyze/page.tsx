@@ -10,9 +10,10 @@ import { StatusMessage } from "@/components/workspace/status-message";
 import { AnalyzeResults } from "@/components/workspace/analyze-results";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { AnalyzeMode, AnalyzeRequest, AnalyzeResponse, DataSourceType } from "@/lib/contracts/workspace";
-import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
+import type { StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
@@ -189,6 +190,14 @@ export default function AnalyzePage() {
     }
   };
 
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<AnalyzeRequest>)
+    }));
+    setErrorMessage(null);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -203,6 +212,8 @@ export default function AnalyzePage() {
           accent="input"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <StudioTemplatePicker area="analyze" disabled={isSubmitting} onApplyTemplate={applyTemplate} />
+
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <SearchCode className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />

@@ -10,6 +10,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
 import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import {
   BackendRecommendationCard,
   PerformanceRecommendationCard,
@@ -27,6 +28,7 @@ import {
   StudioOutputCard
 } from "@/components/workspace/studio-shell";
 import type { DataSourceType, RecommendationRequest, RecommendationResponse } from "@/lib/contracts/workspace";
+import type { StudioTemplate } from "@/lib/studio-templates";
 
 const dataSourceOptions: readonly { label: string; value: DataSourceType }[] = [
   { label: "Dataverse", value: "dataverse" },
@@ -195,6 +197,14 @@ export default function RecommendationsPage() {
     }
   };
 
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<RecommendationRequest>)
+    }));
+    setErrorMessage(null);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -209,6 +219,8 @@ export default function RecommendationsPage() {
           className="h-fit"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <StudioTemplatePicker area="recommendations" disabled={isSubmitting} onApplyTemplate={applyTemplate} />
+
             <SectionCard
               title="Scenario brief"
               description="Describe the solution context, delivery scale, and technical shape that should guide the recommendations."

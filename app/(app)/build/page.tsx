@@ -19,9 +19,9 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { BuildOutput } from "@/components/workspace/build-output";
-import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
-import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
+import type { BuildTemplatePayload, StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 import { cn } from "@/lib/utils";
 
@@ -306,6 +306,14 @@ export default function BuildPage() {
     }
   };
 
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<BuildTemplatePayload>),
+    }));
+    setErrorMessage(null);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -335,6 +343,12 @@ export default function BuildPage() {
           className="space-y-6"
           onSubmit={handleSubmit}
         >
+          <StudioTemplatePicker
+            area="build"
+            disabled={isSubmitting}
+            onApplyTemplate={applyTemplate}
+          />
+
           <SectionCard
             title="Build inputs"
             description="Capture the build direction clearly so the generation step starts from a usable, implementation-oriented brief."

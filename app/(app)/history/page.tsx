@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-
+import { RunHistoryView } from "@/components/history/run-history-view";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
@@ -27,43 +25,15 @@ export default function HistoryPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="History"
-        description="Browse saved studio runs and open a clean detail view for the original input and generated output."
+        title="Run History"
+        description="Browse saved studio runs, scan key status details, and quickly narrow results by studio type."
       />
 
       <SectionCard
         title="Saved runs"
-        description="Each saved run keeps the studio context, request payload, and returned result together for later review."
+        description="Phase 3 keeps recent studio activity visible in a lightweight history view without opening full run details."
       >
-        <div className="space-y-4">
-          {runs.map((run) => (
-            <Link
-              key={run.id}
-              href={`/history/${run.id}`}
-              className="group flex flex-col gap-4 rounded-xl border border-border/70 bg-background/60 p-4 transition hover:border-primary/40 hover:bg-background"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      {getStudioTypeLabel(run.studioType)}
-                    </span>
-                    <StatusBadge status={run.status} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold tracking-tight text-foreground group-hover:text-primary">{run.title}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">Created {formatDate(run.createdAt)}</p>
-                  </div>
-                </div>
-
-                <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-                  View details
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <RunHistoryView />
       </SectionCard>
     </PageContainer>
   );

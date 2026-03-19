@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { ScopeResultsPanel } from "@/components/workspace/scope-results-panel";
 import { StatusMessage } from "@/components/workspace/status-message";
+import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import { STUDIO_RUN_LABEL, STUDIO_RUNNING_LABEL, StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
-import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
+import type { StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
@@ -177,6 +178,14 @@ export default function ScopePage() {
     }
   };
 
+  const applyTemplate = (template: StudioTemplate) => {
+    setFormState((current) => ({
+      ...current,
+      ...(template.payload as Partial<ScopeRequest>)
+    }));
+    setErrorMessage(null);
+  };
+
   return (
     <PageContainer>
       <PageHeader
@@ -191,6 +200,8 @@ export default function ScopePage() {
           accent="input"
         >
           <form className="space-y-6" onSubmit={handleSubmit}>
+            <StudioTemplatePicker area="scope" disabled={isSubmitting} onApplyTemplate={applyTemplate} />
+
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground">
               <div className="flex items-start gap-3">
                 <Sparkles className="mt-0.5 h-4 w-4 text-primary" aria-hidden="true" />
