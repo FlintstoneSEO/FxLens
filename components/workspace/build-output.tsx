@@ -1,34 +1,41 @@
 import type { ReactNode } from "react";
 
 import { CodePanel } from "@/components/ui/code-panel";
+import { CopyButton } from "@/components/ui/copy-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   SuggestedComponentCard,
   SuggestedScreenCard,
 } from "@/components/workspace/result-cards";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
+import { formatBuildResultForCopy } from "@/lib/workspace-copy";
 
 function OutputSection({
   eyebrow,
   title,
   description,
   children,
+  action,
 }: {
   eyebrow: string;
   title: string;
   description: string;
   children: ReactNode;
+  action?: ReactNode;
 }) {
   return (
     <section className="rounded-xl border border-border/70 bg-background/40 p-4 shadow-sm">
-      <div className="mb-4 space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          {eyebrow}
-        </p>
-        <div>
-          <h3 className="text-base font-semibold tracking-tight">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            {eyebrow}
+          </p>
+          <div>
+            <h3 className="text-base font-semibold tracking-tight">{title}</h3>
+            <p className="text-sm text-muted-foreground">{description}</p>
+          </div>
         </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
     </section>
@@ -149,6 +156,8 @@ export function BuildOutput({
         timeStyle: "short",
       });
 
+  const copyValue = formatBuildResultForCopy(response);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
@@ -158,9 +167,10 @@ export function BuildOutput({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">
             Generated Output
           </p>
-          <h3 className="mt-2 text-lg font-semibold tracking-tight">
-            Build package overview
-          </h3>
+          <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold tracking-tight">Build package overview</h3>
+            <CopyButton value={copyValue} label="Copy result" />
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {response.summary}
           </p>

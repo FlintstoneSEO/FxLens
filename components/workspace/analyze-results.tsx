@@ -2,9 +2,11 @@ import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, ClipboardList, SearchCode, Sparkles, Zap } from "lucide-react";
 
 import { CodePanel } from "@/components/ui/code-panel";
+import { CopyButton } from "@/components/ui/copy-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SeverityBadge } from "@/components/ui/severity-badge";
 import { cn } from "@/lib/utils";
+import { formatAnalyzeResultForCopy } from "@/lib/workspace-copy";
 import type { AnalyzeRequest, AnalyzeResponse, RecommendationItem } from "@/lib/contracts/workspace";
 
 type AnalyzeResultsProps = {
@@ -26,13 +28,15 @@ function ResultsSection({
   description,
   children,
   count,
-  tone = "default"
+  tone = "default",
+  action
 }: {
   title: string;
   description: string;
   children: ReactNode;
   count?: number;
   tone?: "default" | "highlight";
+  action?: ReactNode;
 }) {
   return (
     <section
@@ -46,11 +50,14 @@ function ResultsSection({
           <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
-        {typeof count === "number" ? (
-          <span className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {count} {count === 1 ? "item" : "items"}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {typeof count === "number" ? (
+            <span className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {count} {count === 1 ? "item" : "items"}
+            </span>
+          ) : null}
+          {action}
+        </div>
       </div>
       {children}
     </section>
@@ -188,6 +195,7 @@ export function AnalyzeResults({ result, request, isLoading = false }: AnalyzeRe
   }
 
   const riskItems = [...result.delegationConsiderations, ...result.performanceNotes, ...result.maintainabilityNotes];
+  const copyValue = formatAnalyzeResultForCopy(result);
 
   return (
     <div className="space-y-5">
@@ -198,6 +206,7 @@ export function AnalyzeResults({ result, request, isLoading = false }: AnalyzeRe
           title="Analysis summary"
           description="A concise interpretation of the submitted artifact and the main issue pattern returned by the analyzer."
           tone="highlight"
+          action={<CopyButton value={copyValue} label="Copy result" />}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
