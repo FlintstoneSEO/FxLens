@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import {
   AlertCircle,
@@ -20,15 +20,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { BuildOutput } from "@/components/workspace/build-output";
 import { StatusMessage } from "@/components/workspace/status-message";
-import {
-  STUDIO_ERROR_LABEL,
-  STUDIO_LOADING_MESSAGE,
-  STUDIO_RUN_LABEL,
-  STUDIO_RUNNING_LABEL,
-  StudioInputCard,
-  StudioOutputCard
-} from "@/components/workspace/studio-shell";
 import type { BuildRequest, BuildResponse } from "@/lib/contracts/workspace";
+import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 import { cn } from "@/lib/utils";
 
@@ -157,6 +150,7 @@ export default function BuildPage() {
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rerunMessage, setRerunMessage] = useState<string | null>(null);
 
   const selectedIntent = useMemo(
     () =>
@@ -242,6 +236,31 @@ export default function BuildPage() {
     }
   };
 
+  useEffect(() => {
+    const queuedRun = consumeQueuedRerun("build");
+
+    if (!queuedRun) {
+      return;
+    }
+
+    const constraints = queuedRun.request.inputPayload.constraints;
+    const outputs = queuedRun.request.inputPayload.output_preferences;
+
+    setFormState({
+      workspaceTitle: queuedRun.request.promptTitle,
+      buildIntent:
+        intentOptions.find((option) => option.label === queuedRun.request.inputPayload.build_intent)?.id ?? intentOptions[0].id,
+      artifactType:
+        artifactOptions.find((option) => option.label === queuedRun.request.inputPayload.target_artifact)?.id ??
+        artifactOptions[0].id,
+      technicalNotes: queuedRun.request.contextSummary,
+      successMetric: queuedRun.request.inputPayload.success_signal ?? "",
+      selectedConstraints: constraints === "None selected" ? [] : constraints.split(", ").filter(Boolean),
+      selectedOutputs: outputs === "None selected" ? [] : outputs.split(", ").filter(Boolean)
+    });
+    setRerunMessage(`Loaded saved input from ${queuedRun.title}. Review it and generate the build package again when ready.`);
+  }, []);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
@@ -266,8 +285,17 @@ export default function BuildPage() {
         return;
       }
 
+      const savedResponse = payload as BuildResponse;
       setSubmittedRequest(buildRequest);
-      setResponse(payload as BuildResponse);
+      setResponse(savedResponse);
+      saveRun(
+        createSavedRunRecord({
+          studio: "build",
+          title: buildRequest.promptTitle || "Build run",
+          request: buildRequest,
+          response: savedResponse
+        }),
+      );
     } catch {
       setResponse(null);
       setErrorMessage(
@@ -325,6 +353,9 @@ export default function BuildPage() {
                   </p>
                 </div>
               </div>
+              {rerunMessage ? (
+                <StatusMessage label="Saved run loaded" tone="info" message={rerunMessage} />
+              ) : null}
 
               <label className="block space-y-1.5">
                 <span className="text-sm font-medium">Workspace title</span>
