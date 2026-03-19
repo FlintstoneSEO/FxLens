@@ -1,25 +1,31 @@
 # FxLens
 
-FxLens is a Next.js workspace for Power Apps teams. The project is currently in **Phase 2: API-backed studio foundations**: the app has a shared workspace shell, typed request/response contracts, validated server routes, OpenAI-powered generation hooks, and mock fallbacks, but most studio pages are still placeholder UIs rather than fully wired end-to-end workflows.
+FxLens is a Next.js workspace for Power Apps teams. The project is now in **Phase 3: foundation for persisted studio workflows**. The app includes typed server routes, OpenAI-backed generation with mock fallbacks, and the first workspace foundations for saving and revisiting studio output through Run History and reusable Templates.
 
 ## What is functional today
 
-### Working server capabilities
-- **Scope Studio**: `POST /api/scope` validates input, calls OpenAI when configured, and falls back to deterministic mock scoping output if the model call fails.
-- **Build Studio**: `POST /api/generate` validates build requests, supports OpenAI generation, and falls back to mock blueprint/component/formula output.
-- **Analyze Studio**: `POST /api/analyze` validates analyzer requests, supports OpenAI generation, and falls back to mock optimization output.
+### Studio APIs
+- **Scope Studio**: `POST /api/scope` validates requests, calls OpenAI when configured, and falls back to deterministic mock scoping output.
+- **Build Studio**: `POST /api/generate` validates requests, supports OpenAI generation, and falls back to mock blueprint/component/formula output.
+- **Analyze Studio**: `POST /api/analyze` validates requests, supports OpenAI generation, and falls back to mock optimization output.
 - **Recommendation Engine**: `POST /api/recommend` returns mock recommendations.
 - **Solution Review**: `POST /api/solution-review` returns mock review output.
 
+### Phase 3 foundation
+- **Persisted studio runs**: FxLens now treats studio output as reusable run data instead of one-off responses, laying the groundwork for durable workspace records.
+- **Run History**: the workspace includes a dedicated History area for reviewing prior runs and analysis snapshots.
+- **Templates**: the workspace includes a Prompts/Templates area for standardizing reusable prompt patterns across teams.
+
 ### UI status
 - **Landing page and workspace shell** are implemented.
-- **Scope Studio, Build Studio, and Analyze Studio pages** exist in the app shell, but the visible page experiences are still mostly placeholders/sample panels.
-- **Dashboard, History, Prompts, Settings, and Solution Review pages** are navigable placeholders only.
+- **Scope Studio, Build Studio, and Analyze Studio** are the primary interactive studio surfaces.
+- **History and Prompts/Templates** are part of the Phase 3 foundation and are represented in the app shell as the home for saved runs and reusable templates.
+- **Dashboard, Settings, and some supporting pages** remain light-weight while the persisted workflow foundation is expanded.
 
 ## Environment and setup
 
 ### Requirements
-- Node.js 20+ recommended
+- Node.js 20+
 - npm
 
 ### Install and run
@@ -41,16 +47,16 @@ OPENAI_API_URL=https://api.openai.com/v1/chat/completions
 
 Notes:
 - `OPENAI_API_KEY` is required for live model calls.
-- `OPENAI_MODEL` and `OPENAI_API_URL` are optional because the app already defaults them.
-- If OpenAI is not configured, or the request fails, Scope/Build/Analyze routes fall back to mock data.
+- `OPENAI_MODEL` and `OPENAI_API_URL` are optional because FxLens provides defaults.
+- **Phase 3 adds no new required environment variables yet.** If OpenAI is not configured, studio routes continue to fall back to mock data.
 
 ## Recommended development workflow
 
 Use Codex for **small, focused tasks** on short-lived branches instead of batching unrelated work together.
 
-1. Create a narrow branch for one change, such as `codex/readme-phase-2` or `codex/wire-scope-form`.
+1. Create a narrow branch for one change, such as `codex/readme-phase-3` or `codex/history-copy`.
 2. Ask Codex to make that single change, verify it, and keep the diff small.
 3. Run local checks (`npm run lint`, `npm run typecheck`) before committing.
 4. Open a PR, merge, and start the next small branch.
 
-This keeps reviews fast, reduces merge conflicts, and makes it easier to track which Phase 2 capability changed.
+This keeps reviews fast, reduces merge conflicts, and makes it easier to track which Phase 3 foundation capability changed.
