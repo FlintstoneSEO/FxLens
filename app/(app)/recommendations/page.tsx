@@ -10,6 +10,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
 import { StatusMessage } from "@/components/workspace/status-message";
+import { RunExportActions } from "@/components/workspace/run-export-actions";
 import {
   BackendRecommendationCard,
   PerformanceRecommendationCard,
@@ -63,6 +64,7 @@ const sharedErrorMessage = "Unable to run Recommendations Studio right now. Plea
 export default function RecommendationsPage() {
   const [formState, setFormState] = useState<RecommendationRequest>(initialFormState);
   const [result, setResult] = useState<RecommendationResponse | null>(null);
+  const [submittedRequest, setSubmittedRequest] = useState<RecommendationRequest | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -180,15 +182,18 @@ export default function RecommendationsPage() {
 
       if (!response.ok) {
         setResult(null);
+        setSubmittedRequest(null);
         setErrorMessage(
           "error" in payload ? payload.error?.message ?? sharedErrorMessage : sharedErrorMessage
         );
         return;
       }
 
+      setSubmittedRequest(formState);
       setResult(payload as RecommendationResponse);
     } catch {
       setResult(null);
+      setSubmittedRequest(null);
       setErrorMessage(sharedErrorMessage);
     } finally {
       setIsSubmitting(false);
@@ -315,6 +320,15 @@ export default function RecommendationsPage() {
           generatedAtLabel={generatedAtLabel}
           isLoading={isSubmitting}
         >
+          {result && submittedRequest ? (
+            <RunExportActions
+              runType="recommendation_engine"
+              input={submittedRequest}
+              output={result}
+              generatedAt={result.generatedAt}
+              fileName={`${submittedRequest.scenario.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40) || "recommendations-run"}-recommendations-run`}
+            />
+          ) : null}
           {result ? (
             <div className="space-y-6">
               <SectionCard
