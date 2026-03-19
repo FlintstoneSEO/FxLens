@@ -11,6 +11,7 @@ import { StatusMessage } from "@/components/workspace/status-message";
 import { StudioTemplatePicker } from "@/components/workspace/studio-template-picker";
 import { STUDIO_RUN_LABEL, STUDIO_RUNNING_LABEL, StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { DataSourceType, ScopeRequest, ScopeResponse } from "@/lib/contracts/workspace";
+import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
 import type { StudioTemplate } from "@/lib/studio-templates";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 

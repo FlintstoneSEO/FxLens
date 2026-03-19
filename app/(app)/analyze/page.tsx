@@ -14,6 +14,7 @@ import { StudioTemplatePicker } from "@/components/workspace/studio-template-pic
 import { StudioInputCard, StudioOutputCard } from "@/components/workspace/studio-shell";
 import type { AnalyzeMode, AnalyzeRequest, AnalyzeResponse, DataSourceType } from "@/lib/contracts/workspace";
 import type { StudioTemplate } from "@/lib/studio-templates";
+import { consumeQueuedRerun, createSavedRunRecord, saveRun } from "@/lib/run-history";
 import type { ValidationErrorPayload } from "@/lib/validation/workspace";
 
 const dataSourceOptions: Array<{ label: string; value: DataSourceType }> = [
