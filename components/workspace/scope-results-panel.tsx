@@ -10,6 +10,8 @@ import {
   SqlArtifactCard
 } from "@/components/workspace/result-cards";
 import { EmptyState } from "@/components/ui/empty-state";
+import { CopyButton } from "@/components/ui/copy-button";
+import { formatScopeResultForCopy } from "@/lib/workspace-copy";
 
 type ScopeResultsPanelProps = {
   result: ScopeResponse | null;
@@ -21,13 +23,15 @@ function ResultSection({
   description,
   children,
   count,
-  tone = "default"
+  tone = "default",
+  action
 }: {
   title: string;
   description: string;
   children: ReactNode;
   count?: number;
   tone?: "default" | "highlight";
+  action?: ReactNode;
 }) {
   return (
     <section
@@ -42,11 +46,14 @@ function ResultSection({
           <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
           <p className="mt-1 text-sm text-muted-foreground">{description}</p>
         </div>
-        {typeof count === "number" ? (
-          <span className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {count} {count === 1 ? "item" : "items"}
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {typeof count === "number" ? (
+            <span className="rounded-full border border-border/70 bg-card px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {count} {count === 1 ? "item" : "items"}
+            </span>
+          ) : null}
+          {action}
+        </div>
       </div>
       {children}
     </section>
@@ -120,6 +127,7 @@ export function ScopeResultsPanel({ result, isLoading = false }: ScopeResultsPan
   }
 
   const roles = Array.from(new Set(result.suggestedScreens.flatMap((screen) => screen.targetRoles))).sort();
+  const copyValue = formatScopeResultForCopy(result);
 
   return (
     <div className="space-y-5">
@@ -127,6 +135,7 @@ export function ScopeResultsPanel({ result, isLoading = false }: ScopeResultsPan
         title="Executive summary"
         description="A concise overview of the proposed solution direction for this project."
         tone="highlight"
+        action={<CopyButton value={copyValue} label="Copy result" />}
       >
         <p className="text-sm leading-6 text-foreground">{result.appSummary}</p>
       </ResultSection>

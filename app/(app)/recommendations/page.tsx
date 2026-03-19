@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { PageContainer } from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
+import { CopyButton } from "@/components/ui/copy-button";
 import { SectionCard } from "@/components/ui/section-card";
 import { FormInputField } from "@/components/workspace/form-input-field";
 import { FormTextareaField } from "@/components/workspace/form-textarea-field";
@@ -28,6 +29,7 @@ import {
   StudioOutputCard
 } from "@/components/workspace/studio-shell";
 import type { DataSourceType, RecommendationRequest, RecommendationResponse } from "@/lib/contracts/workspace";
+import { formatRecommendationResultForCopy } from "@/lib/workspace-copy";
 
 const dataSourceOptions: readonly { label: string; value: DataSourceType }[] = [
   { label: "Dataverse", value: "dataverse" },
@@ -86,6 +88,8 @@ export default function RecommendationsPage() {
 
     return `Last run ${new Date(result.generatedAt).toLocaleString()}`;
   }, [result]);
+
+  const copyValue = useMemo(() => (result ? formatRecommendationResultForCopy(result) : ""), [result]);
 
   const responseSections = useMemo(() => {
     if (!result) {
@@ -335,6 +339,7 @@ export default function RecommendationsPage() {
                 title="Response summary"
                 description={`Recommendation response generated ${new Date(result.generatedAt).toLocaleString()}.`}
                 className="border-border/60 bg-background/40 p-5 shadow-none"
+                headerAdornment={<CopyButton value={copyValue} label="Copy result" />}
               >
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {getSummaryMetrics(result).map((metric) => (
